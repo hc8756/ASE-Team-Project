@@ -1,4 +1,4 @@
-package dev.coms4156.project.individualproject.model;
+package model;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;

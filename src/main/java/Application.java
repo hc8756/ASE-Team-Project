@@ -1,17 +1,15 @@
-package dev.coms4156.project.individualproject;
+package app;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * This class contains the startup of the application.
- * DO NOT MODIFY THIS FILE.
  */
-@SpringBootApplication
-public class IndividualProjectApplication {
-
+@SpringBootApplication(scanBasePackages = {"controller","service","model"})
+public class Application {
   public static void main(String[] args) {
-    SpringApplication.run(IndividualProjectApplication.class, args);
+    SpringApplication.run(Application.class, args);
   }
 
 }

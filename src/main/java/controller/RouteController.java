@@ -1,5 +1,6 @@
-package dev.coms4156.project.individualproject.controller;
-import dev.coms4156.project.individualproject.service.MockApiService;
+package controller;
+
+import service.MockApiService;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpStatus;
