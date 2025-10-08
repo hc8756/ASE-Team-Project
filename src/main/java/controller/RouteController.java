@@ -1,9 +1,6 @@
 package controller;
 
-import service.MockApiService;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -11,7 +8,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import service.MockApiService;
 
 /**
  * Routes for the Ledger API.
@@ -26,7 +28,7 @@ public class RouteController {
     }
 
     @GetMapping({"/", "/index"})
-    public ResponseEntity<String> index() {
+    public ResponseEntity<?> index() {
         LOGGER.info("Accessed index route.");
         String message = "Welcome to the ledger home page!\nTo see this month's summary, GET /monthly-summary.";
         message = message.replace("\n", "<br>");
@@ -36,8 +38,8 @@ public class RouteController {
     }
 
     @GetMapping("/monthly-summary")
-    public ResponseEntity<String> monthlySummary() {
-        ResponseEntity<String> response;
+    public ResponseEntity<?> monthlySummary() {
+        ResponseEntity<?> response;
         try {
             String summary = mockApiService.getMonthlySummary()
                     .replace("\n", "<br>");
@@ -53,5 +55,36 @@ public class RouteController {
         }
 
         return response;
+    }
+
+    @PatchMapping(
+        value = "/update-transaction/{id}",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> updateTransaction(
+            @PathVariable("id") long id,
+            @RequestBody Map<String, Object> body
+    ) {
+        ResponseEntity<?> response;
+        try {
+            response = mockApiService.updateTransaction(id, body)
+                    .<ResponseEntity<?>>map(updated -> ResponseEntity.ok(updated))
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(Map.of("error", "transaction not found")));
+        } catch (IllegalArgumentException ex) {
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.log(Level.WARNING, "Bad update payload", ex);
+            }
+            response = ResponseEntity.badRequest()
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            if (LOGGER.isLoggable(Level.SEVERE)) {
+                LOGGER.log(Level.SEVERE, "Error updating transaction", ex);
+            }
+            response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "internal error"));
+        }
+        return response;    
     }
 }

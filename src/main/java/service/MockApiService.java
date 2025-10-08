@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -132,5 +133,52 @@ public class MockApiService {
         if (r.startsWith("educat") || r.contains("tuition") || r.contains("books")) return "Education";
         if (r.startsWith("other")) return "Other";
         return "Miscellaneous";
+    }
+
+    public synchronized Optional<model.Ledger> updateTransaction(long id, Map<String, Object> patch) {
+        if (entries == null || entries.isEmpty()) return Optional.empty();
+
+        // Do not allow changing id or date
+        if (patch.containsKey("id") || patch.containsKey("ledgerId") || patch.containsKey("date")) {
+            throw new IllegalArgumentException("Fields id and date are immutable");
+        }
+
+        for (int i = 0; i < entries.size(); i++) {
+            model.Ledger e = entries.get(i);
+            if (e.getLedgerId() == id) {
+                // amount (optional)
+                if (patch.containsKey("amount") && patch.get("amount") != null) {
+                    Object v = patch.get("amount");
+                    double amt;
+                    if (v instanceof Number) {
+                        amt = ((Number) v).doubleValue();
+                    } else {
+                        try {
+                            amt = Double.parseDouble(v.toString());
+                        } catch (NumberFormatException nfe) {
+                            throw new IllegalArgumentException("amount must be numeric");
+                        }
+                    }
+                    e.setAmount(amt);
+                }
+
+                // category (optional)
+                if (patch.containsKey("category") && patch.get("category") != null) {
+                    String cat = patch.get("category").toString();
+                    cat = normalizeCategory(cat);
+                    e.setCategory(cat);
+                }
+
+                // description (optional)
+                if (patch.containsKey("description")) {
+                    Object d = patch.get("description");
+                    e.setDescription(d == null ? null : d.toString());
+                }
+
+                entries.set(i, e);
+                return Optional.of(e);
+            }
+        }
+        return Optional.empty();
     }
 }

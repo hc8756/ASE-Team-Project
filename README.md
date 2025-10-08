@@ -11,3 +11,11 @@ Navigate to ```http://127.0.0.1:8080``` on web browser.
 
 ## Endpoints:
 - ```/monthly-summary``` Displays monthly summary for current month
+- ```/update-transaction/{id}``` Updates transaction of given id. Cannot change id or date fields.
+
+Test update tranaction example:
+```bash
+curl -X PATCH "http://localhost:8080/update-transaction/1" \
+  -H "Content-Type: application/json" \
+  -d '{"amount":38.75,"category":"Dining","description":"noodles"}'
+```
