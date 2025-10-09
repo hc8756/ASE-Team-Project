@@ -1,0 +1,23 @@
+[
+  { 
+    "id": 1, 
+    "date": "2025-10-02", 
+    "amount": 12.50, 
+    "category": "Dining", 
+    "description": "Coffee" 
+  },
+  { 
+    "id": 2, 
+    "date": "2025-10-03", 
+    "amount": 45.00, 
+    "category": "Groceries", 
+    "description": "Trader Joe's" 
+  },
+  { 
+    "id": 3, 
+    "date": "2025-09-21", 
+    "amount": 20.00, 
+    "category": "Health", 
+    "description": "Pharmacy"
+  }
+]
