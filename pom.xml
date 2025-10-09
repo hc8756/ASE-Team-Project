@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>dev.coms4156.project</groupId>
-	<artifactId>individualproject</artifactId>
+	<artifactId>ledger</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>individualproject</name>
-	<description>individualproject</description>
+	<name>ledger</name>
+	<description>ledger</description>
 	<url/>
 	<licenses>
 		<license/>
