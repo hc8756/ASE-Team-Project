@@ -11,13 +11,9 @@ public class Transaction implements Comparable<Transaction> {
     private String category;
     private LocalDateTime createdAt;
     
-    // ADD THIS - parameterless constructor
     public Transaction() {
-        // Empty constructor for RowMapper
-        // Business logic validation happens in setters or service layer
     }
     
-    // Your existing constructor for business logic
     public Transaction(UUID userId, double amount, String category) {
         this.userId = userId;
         this.amount = amount;
