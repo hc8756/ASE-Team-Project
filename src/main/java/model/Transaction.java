@@ -11,11 +11,22 @@ public class Transaction implements Comparable<Transaction> {
     private String category;
     private LocalDateTime createdAt;
     
-    // Constructors
-
-    // Make sure that category is defined in transaction_category in schema.sql
+    // ADD THIS - parameterless constructor
+    public Transaction() {
+        // Empty constructor for RowMapper
+        // Business logic validation happens in setters or service layer
+    }
+    
+    // Your existing constructor for business logic
     public Transaction(UUID userId, double amount, String category) {
         this.userId = userId;
+        this.amount = amount;
+        this.category = category;
+    }
+
+    public Transaction(UUID userId, String description, double amount, String category) {
+        this.userId = userId;
+        this.description = description;
         this.amount = amount;
         this.category = category;
     }
@@ -38,4 +49,9 @@ public class Transaction implements Comparable<Transaction> {
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    @Override
+    public int compareTo(final Transaction other) {
+      return this.createdAt.compareTo(other.createdAt);
+    }
 }
