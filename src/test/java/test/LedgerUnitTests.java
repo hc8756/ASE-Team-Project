@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import model.Ledger;
+import model.Transaction;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,10 +18,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 public class LedgerUnitTests {
 
-  public Ledger book;
+  public Transaction transaction;
 
   @BeforeEach
-  public void setUpBookForTesting() {
+  public void setupforTransactionTesting() {
   }
 
   
