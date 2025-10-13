@@ -1,11 +1,8 @@
 package test;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import service.TransactionService;
-import org.junit.jupiter.api.Test;
+import service.MockApiService;
 import org.springframework.boot.test.context.SpringBootTest;
+import service.MockApiService;
 
 /**
  * This class contains the unit tests for the MockApiTests class.
