@@ -4,33 +4,43 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import model.Ledger;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import model.Ledger;
-import org.springframework.stereotype.Service;
 
 /**
  * Service that loads ledger transactions, provides summaries,
- * budget reporting, and update operations.
+ * budget reporting, update operations, and basic CRUD/weekly APIs.
  */
 @Service
 public class MockApiService {
 
+  // ===== In-memory store & id sequence =====
+  private final Map<Long, Ledger> store = new ConcurrentHashMap<>();
+  private final AtomicLong seq = new AtomicLong(1);
+
   /** Tolerance for floating point comparisons. */
   private static final double EPS = 0.005;
 
-  /** The list of ledger transactions. */
-  private List<Ledger> entries;
+  /** The list of ledger transactions (kept in sync with store). */
+  private List<Ledger> entries = new ArrayList<>();
 
   /** Logger for logging messages. */
   private static final Logger LOGGER = Logger.getLogger(MockApiService.class.getName());
@@ -48,15 +58,13 @@ public class MockApiService {
 
   /**
    * Constructs the service. Configures the mapper and loads data, then seeds budgets.
-   *
-   * @param mapper Spring-managed object mapper
    */
   public MockApiService(final ObjectMapper mapper) {
     this.mapper = mapper.copy();
     this.mapper.registerModule(new JavaTimeModule());
     this.mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    loadLedger();
+    loadLedger(); // seeds entries + store + seq
 
     budgets.put("Total", 500.0);
     budgets.put("Health", 50.0);
@@ -68,8 +76,108 @@ public class MockApiService {
     budgets.put("Miscellaneous", 50.0);
   }
 
+  // ===========================
+  // ==  CRUD & WEEKLY (NEW)  ==
+  // ===========================
+
+  /** Create a ledger entry (assigns id, normalizes fields). */
+  public Ledger add(final Ledger incoming) {
+    Objects.requireNonNull(incoming, "Ledger cannot be null");
+
+    long id = seq.getAndIncrement();
+    String desc = Optional.ofNullable(incoming.getDescription()).orElse("").trim();
+    String cat = normalizeCategory(incoming.getCategory());
+    double amount = incoming.getAmount();
+    LocalDate date = Optional.ofNullable(incoming.getDate()).orElse(LocalDate.now());
+
+    // avoid relying on a specific constructor: set fields explicitly
+    incoming.setLedgerId(id);
+    incoming.setDescription(desc);
+    incoming.setCategory(cat);
+    incoming.setAmount(amount);
+    incoming.setDate(date);
+
+    store.put(id, incoming);
+
+    // keep entries in sync (sorted oldest->newest)
+    entries.add(incoming);
+    entries.sort(Comparator.comparing(Ledger::getDate).thenComparing(Ledger::getLedgerId));
+    return incoming;
+  }
+
+  public Optional<Ledger> get(final long id) {
+    return Optional.ofNullable(store.get(id));
+  }
+
+  public boolean delete(final long id) {
+    Ledger removed = store.remove(id);
+    if (removed == null) return false;
+    // remove from entries too
+    entries.removeIf(e -> e.getLedgerId() == id);
+    return true;
+  }
+
+  /** All entries sorted by date then id (defensive copy). */
+  public List<Ledger> viewAll() {
+    ArrayList<Ledger> list = new ArrayList<>(store.values());
+    list.sort(Comparator.comparing(Ledger::getDate).thenComparing(Ledger::getLedgerId));
+    return List.copyOf(list);
+  }
+
+  /** Entries with date >= (today - 7 days), inclusive; sorted oldest->newest. */
+  public List<Ledger> weeklySummary() {
+    LocalDate cutoff = LocalDate.now().minusDays(7);
+    ArrayList<Ledger> list = new ArrayList<>();
+    for (Ledger e : store.values()) {
+      if (e.getDate() != null && !e.getDate().isBefore(cutoff)) list.add(e);
+    }
+    list.sort(Comparator.comparing(Ledger::getDate).thenComparing(Ledger::getLedgerId));
+    return List.copyOf(list);
+  }
+
+  /** Sum of amounts for last 7 days. */
+  public double totalLast7Days() {
+    LocalDate cutoff = LocalDate.now().minusDays(7);
+    return store.values().stream()
+        .filter(e -> e.getDate() != null && !e.getDate().isBefore(cutoff))
+        .mapToDouble(Ledger::getAmount)
+        .sum();
+  }
+
+  /** Clear everything (useful for tests). */
+  public void clearAll() {
+    store.clear();
+    entries = new ArrayList<>();
+    seq.set(1);
+  }
+
+  // -------------------------------------------
+  // -- Aliases expected by RouteController ----
+  // -------------------------------------------
+
+  public Ledger addTransaction(final Ledger tx) {
+    return add(tx);
+  }
+
+  public Optional<Ledger> getTransaction(final long id) {
+    return get(id);
+  }
+
+  public List<Ledger> viewAllTransactions() {
+    return viewAll();
+  }
+
+  public boolean deleteTransaction(final long id) {
+    return delete(id);
+  }
+
+  // ===========================
+  // ==   Existing features   ==
+  // ===========================
+
   /**
    * Loads ledger entries from {@code resources/mockdata/ledger.json}.
+   * Also hydrates the in-memory store and id sequence.
    */
   private void loadLedger() {
     try (InputStream is =
@@ -79,13 +187,39 @@ public class MockApiService {
       if (is == null) {
         LOGGER.severe("Failed to find mockdata/ledger.json in resources.");
         entries = new ArrayList<>(0);
+        store.clear();
+        seq.set(1);
         return;
       }
 
       entries = this.mapper.readValue(is, new TypeReference<List<Ledger>>() {});
       LOGGER.info("Successfully loaded ledger entries.");
+
+      // hydrate store and seq; normalize categories
+      store.clear();
+      long maxId = 0L;
+      for (Ledger e : entries) {
+        String cat = normalizeCategory(e.getCategory());
+        e.setCategory(cat);
+        long id = e.getLedgerId();
+        // if input id is 0 or negative, assign a new increasing id
+        if (id <= 0) {
+          id = ++maxId;
+          e.setLedgerId(id);
+        } else {
+          maxId = Math.max(maxId, id);
+        }
+        store.put(id, e);
+      }
+      seq.set(maxId + 1);
+
+      // keep entries sorted
+      entries.sort(Comparator.comparing(Ledger::getDate).thenComparing(Ledger::getLedgerId));
+
     } catch (IOException e) {
       entries = new ArrayList<>(0);
+      store.clear();
+      seq.set(1);
       if (LOGGER.isLoggable(Level.SEVERE)) {
         LOGGER.log(Level.SEVERE, "Failed to load ledger entries.", e);
       }
@@ -94,9 +228,6 @@ public class MockApiService {
 
   /**
    * Builds a plain-text monthly summary for the current month.
-   * Includes total spend and category breakdown by percentage, plus budgets and warnings.
-   *
-   * @return summary text
    */
   public String getMonthlySummary() {
     if (entries == null) {
@@ -160,9 +291,6 @@ public class MockApiService {
 
   /**
    * Normalizes various raw category labels into the fixed set used by the service.
-   *
-   * @param raw input category
-   * @return normalized category
    */
   private String normalizeCategory(final String raw) {
     if (raw == null || raw.isBlank()) {
@@ -196,12 +324,8 @@ public class MockApiService {
 
   /**
    * Updates a transaction by id; only amount, category, and description are mutable.
-   *
-   * @param id transaction id
-   * @param patch fields to update
-   * @return the updated entry if found
    */
-  public synchronized Optional<model.Ledger> updateTransaction(
+  public synchronized Optional<Ledger> updateTransaction(
       final long id, final Map<String, Object> patch) {
 
     if (entries == null || entries.isEmpty()) {
@@ -214,7 +338,7 @@ public class MockApiService {
     }
 
     for (int i = 0; i < entries.size(); i++) {
-      model.Ledger e = entries.get(i);
+      Ledger e = entries.get(i);
       if (e.getLedgerId() == id) {
 
         // amount (optional)
@@ -245,27 +369,21 @@ public class MockApiService {
           e.setDescription(d == null ? null : d.toString());
         }
 
+        // keep store + entries in sync
         entries.set(i, e);
+        store.put(id, e);
         return Optional.of(e);
       }
     }
     return Optional.empty();
   }
 
-  /**
-   * Returns a defensive copy of the current budgets map.
-   *
-   * @return budgets map
-   */
+  /** Budgets — getters & report helpers */
+
   public Map<String, Double> getBudgets() {
     return new LinkedHashMap<>(budgets);
   }
 
-  /**
-   * Returns current month spend per category, including the "Total" key.
-   *
-   * @return spend per category
-   */
   public Map<String, Double> getCurrentMonthSpendByCategory() {
     final YearMonth now = YearMonth.now(ZoneId.systemDefault());
     Map<String, Double> spend = new LinkedHashMap<>();
@@ -291,12 +409,6 @@ public class MockApiService {
     return spend;
   }
 
-  /**
-   * Builds a JSON-friendly budget report including budgets, spend, remaining,
-   * and overBudget flags for each key.
-   *
-   * @return budget report map
-   */
   public Map<String, Object> getBudgetReport() {
     Map<String, Double> b = getBudgets();
     Map<String, Double> s = getCurrentMonthSpendByCategory();
@@ -320,11 +432,6 @@ public class MockApiService {
     return out;
   }
 
-  /**
-   * Builds a text block describing budgets and current spend, for embedding in pages.
-   *
-   * @return multi-line budgets block
-   */
   public String getBudgetsTextBlock() {
     Map<String, Double> b = getBudgets();
     Map<String, Double> s = getCurrentMonthSpendByCategory();
@@ -356,11 +463,6 @@ public class MockApiService {
     return sb.toString();
   }
 
-  /**
-   * Returns warning lines when total or any category exceeds its budget.
-   *
-   * @return warnings text (possibly empty)
-   */
   public String getBudgetWarningsText() {
     Map<String, Double> b = getBudgets();
     Map<String, Double> s = getCurrentMonthSpendByCategory();
@@ -396,11 +498,7 @@ public class MockApiService {
   }
 
   /**
-   * Updates budgets according to the provided map. You may add, update, or remove categories
-   * (set to 0 to remove). Categories not provided remain unchanged. The sum of categories must
-   * equal the provided "Total" value if included, or the existing total otherwise.
-   *
-   * @param updates map containing "Total" and/or category budgets
+   * Updates budgets according to the provided map.
    */
   public synchronized void setBudgets(final Map<String, Object> updates) {
     if (updates == null || updates.isEmpty()) {
@@ -413,9 +511,7 @@ public class MockApiService {
     // Detect if Total provided
     Double providedTotal = null;
     for (String k : updates.keySet()) {
-      if (k == null) {
-        continue;
-      }
+      if (k == null) continue;
       String keyNorm = k.trim();
       if (keyNorm.equalsIgnoreCase("Total")) {
         Object v = updates.get(k);
@@ -429,14 +525,10 @@ public class MockApiService {
     // Apply category updates (add/update/delete). Skip Total here.
     for (Map.Entry<String, Object> e : updates.entrySet()) {
       String rawKey = e.getKey();
-      if (rawKey == null) {
-        continue;
-      }
+      if (rawKey == null) continue;
       String key = rawKey.trim();
 
-      if (key.equalsIgnoreCase("Total")) {
-        continue;
-      }
+      if (key.equalsIgnoreCase("Total")) continue;
 
       String cat = normalizeCategory(key);
       Object v = e.getValue();
@@ -460,9 +552,7 @@ public class MockApiService {
     // Compute sum of categories (exclude Total)
     double sumCategories = 0.0;
     for (Map.Entry<String, Double> en : newBudgets.entrySet()) {
-      if ("Total".equals(en.getKey())) {
-        continue;
-      }
+      if ("Total".equals(en.getKey())) continue;
       sumCategories += en.getValue();
     }
 
@@ -491,13 +581,6 @@ public class MockApiService {
     budgets = newBudgets;
   }
 
-  /**
-   * Parses a value to double, throwing an {@link IllegalArgumentException} on failure.
-   *
-   * @param v     value to parse
-   * @param field field name for error messages
-   * @return parsed double
-   */
   private static double parseDoubleStrict(final Object v, final String field) {
     if (v instanceof Number) {
       return ((Number) v).doubleValue();
