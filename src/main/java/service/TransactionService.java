@@ -15,15 +15,24 @@ public class TransactionService {
     private final AtomicLong seq = new AtomicLong(1);
 
     public Transaction add(Transaction incoming) {
+        Objects.requireNonNull(incoming, "Transaction cannot be null");
+
+        String desc = Optional.ofNullable(incoming.getDescription()).orElse("").trim();
+        double amount = incoming.getAmount();
+
         long id = seq.getAndIncrement();
         Transaction tx = new Transaction(
                 id,
-                Optional.ofNullable(incoming.getDescription()).orElse(""),
-                incoming.getAmount(),
+                desc,
+                amount,
                 LocalDateTime.now()
         );
         store.put(id, tx);
         return tx;
+    }
+
+    public Optional<Transaction> get(long id) {
+        return Optional.ofNullable(store.get(id));
     }
 
     public boolean delete(long id) {
@@ -31,18 +40,33 @@ public class TransactionService {
     }
 
     public List<Transaction> viewAll() {
-        ArrayList<Transaction> list = new ArrayList<>(store.values());
-        list.sort(Comparator.comparing(Transaction::getTimestamp)); // oldest->newest
-        return list;
+        List<Transaction> list = new ArrayList<>(store.values());
+        list.sort(Comparator.comparing(Transaction::getTimestamp)); // oldest -> newest
+        return List.copyOf(list);
     }
 
     public List<Transaction> weeklySummary() {
         LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-        ArrayList<Transaction> list = new ArrayList<>();
+        List<Transaction> list = new ArrayList<>();
         for (Transaction t : store.values()) {
-            if (t.getTimestamp().isAfter(sevenDaysAgo)) list.add(t);
+            if (!t.getTimestamp().isBefore(sevenDaysAgo)) {
+                list.add(t);
+            }
         }
         list.sort(Comparator.comparing(Transaction::getTimestamp));
-        return list;
+        return List.copyOf(list);
+    }
+
+    public double totalLast7Days() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(7);
+        return store.values().stream()
+                .filter(t -> !t.getTimestamp().isBefore(cutoff))
+                .mapToDouble(Transaction::getAmount)
+                .sum();
+    }
+
+    public void clearAll() {
+        store.clear();
+        seq.set(1);
     }
 }

@@ -1,11 +1,14 @@
 package controller;
 
 import model.Transaction;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import service.TransactionService;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/transactions")
@@ -17,28 +20,64 @@ public class TransactionController {
         this.service = service;
     }
 
-    // Add a transaction (id/timestamp are ignored if sent; they’re set by the service)
-    @PostMapping("/add")
-    public Transaction add(@RequestBody Transaction tx) {
-        return service.add(tx);
+    // ---- Create ----
+    // POST /transactions
+    // (id/timestamp in body are ignored; service sets them)
+    @PostMapping
+    public ResponseEntity<Transaction> create(@RequestBody Transaction tx) {
+        Transaction saved = service.add(tx);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    // Delete by id
-    @DeleteMapping("/delete/{id}")
-    public Map<String, Object> delete(@PathVariable long id) {
-        boolean ok = service.delete(id);
-        return Map.of("deleted", ok, "id", id);
-    }
-
-    // View all transactions
-    @GetMapping("/view")
-    public List<Transaction> view() {
+    // ---- Read ----
+    // GET /transactions
+    @GetMapping
+    public List<Transaction> list() {
         return service.viewAll();
     }
 
-    // Transactions from the last 7 days
-    @GetMapping("/weekly-summary")
-    public List<Transaction> weeklySummary() {
+    // GET /transactions/{id}
+    @GetMapping("/{id}")
+    public ResponseEntity<Transaction> getById(@PathVariable long id) {
+        return service.get(id)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new NoSuchElementException("Transaction " + id + " not found"));
+    }
+
+    // GET /transactions/weekly
+    @GetMapping("/weekly")
+    public List<Transaction> weekly() {
         return service.weeklySummary();
+    }
+
+    // GET /transactions/weekly/total
+    @GetMapping("/weekly/total")
+    public Map<String, Object> weeklyTotal() {
+        double total = service.totalLast7Days();
+        return Map.of("totalLast7Days", total);
+    }
+
+    // ---- Delete ----
+    // DELETE /transactions/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> delete(@PathVariable long id) {
+        boolean deleted = service.delete(id);
+        if (!deleted) {
+            throw new NoSuchElementException("Transaction " + id + " not found");
+        }
+        return ResponseEntity.ok(Map.of("deleted", true, "id", id));
+    }
+
+    // ---- Simple exception mapping ----
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(NoSuchElementException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleBadRequest(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage()));
     }
 }
