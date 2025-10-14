@@ -1,72 +1,41 @@
 package model;
-
-import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonFormat;
+import java.util.UUID;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
- * Unified Transaction/Ledger model.
  * Positive amount = expense; negative = income/refund.
  * Supports both date-only (for summaries) and timestamp (for precise ordering).
  */
-public class Ledger implements Comparable<Ledger> {
+public class Transaction implements Comparable<Transaction> {
 
-    // ---------- Identity ----------
-    /** Unique identifier. Accepts JSON "id" or "ledgerId". */
-    @JsonAlias({"id", "ledgerId"})
-    private Long id;
-
-    // ---------- Core ----------
-    private String description;
+    private UUID transactionId;
+    private UUID userId;
+    private String description; 
     private double amount;
-
-    // ---------- Date/Time ----------
-    /** Optional full timestamp (for precise ordering). */
+    private String category;
     private LocalDateTime timestamp;
-
-    /** Optional date-only (yyyy-MM-dd) for summaries & budgets. */
-    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;
 
-    // ---------- Category ----------
-    /** Category label (e.g., Dining, Groceries, Utilities). */
-    private String category;
-
     // ---------- Constructors ----------
-    public Ledger() {
-        // Leave fields null by default; service will populate as needed.
+    public Transaction() {
     }
 
-    public Ledger(Long id, LocalDate date, double amount, String category, String description) {
-        this.id = id;
-        setDate(date);
+    public Transaction(UUID userID, double amount, String category, String description) {
+        this.userId = userID;
         this.amount = amount;
         this.category = category;
         setDescription(description);
-        // If timestamp is still null, derive from date
-        if (this.timestamp == null && this.date != null) {
-            this.timestamp = this.date.atStartOfDay();
-        }
-    }
-
-    public Ledger(Long id, String description, double amount, LocalDateTime timestamp, String category) {
-        this.id = id;
-        setDescription(description);
-        this.amount = amount;
-        setTimestamp(timestamp);
-        this.category = category;
     }
 
     // ---------- Getters / Setters ----------
-    /** Alias for compatibility with code that calls getLedgerId(). */
-    public Long getLedgerId() { return id; }
-    public void setLedgerId(Long id) { this.id = id; }
+    public UUID getTransactionId() { return transactionId; }
+    public void setTransactionId(UUID id) { this.transactionId = id; }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID id) { this.userId = id; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) {
@@ -107,40 +76,50 @@ public class Ledger implements Comparable<Ledger> {
 
     // ---------- Comparable ----------
     @Override
-    public int compareTo(Ledger other) {
+    public int compareTo(Transaction other) {
         if (other == null) return 1;
         LocalDateTime a = this.effectiveInstant();
         LocalDateTime b = other.effectiveInstant();
+        
         if (a == null && b == null) {
-            long ai = (this.id == null ? -1L : this.id);
-            long bi = (other.id == null ? -1L : other.id);
-            return Long.compare(ai, bi);
+            UUID ai = this.transactionId;
+            UUID bi = other.transactionId;
+            if (ai == null && bi == null) return 0;
+            if (ai == null) return -1;
+            if (bi == null) return 1;
+            return ai.compareTo(bi);
         }
+        
         if (a == null) return -1;
         if (b == null) return 1;
+        
         int cmp = a.compareTo(b);
         if (cmp != 0) return cmp;
-        long ai = (this.id == null ? -1L : this.id);
-        long bi = (other.id == null ? -1L : other.id);
-        return Long.compare(ai, bi);
+        
+        UUID ai = this.transactionId;
+        UUID bi = other.transactionId;
+        if (ai == null && bi == null) return 0;
+        if (ai == null) return -1;
+        if (bi == null) return 1;
+        return ai.compareTo(bi);
     }
 
     // ---------- Equality / Hash / String ----------
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Ledger)) return false;
-        Ledger ledger = (Ledger) o;
-        return Objects.equals(id, ledger.id);
+        if (!(o instanceof Transaction)) return false;
+        Transaction transaction = (Transaction) o;
+        return Objects.equals(transactionId, transaction.transactionId);
     }
 
     @Override
-    public int hashCode() { return Objects.hash(id); }
+    public int hashCode() { return Objects.hash(transactionId); }
 
     @Override
     public String toString() {
-        return "Ledger{" +
-                "id=" + id +
+        return "Transaction{" +
+                "id=" + transactionId +
                 ", description='" + description + '\'' +
                 ", amount=" + amount +
                 ", timestamp=" + timestamp +

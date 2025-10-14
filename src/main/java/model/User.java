@@ -1,5 +1,4 @@
-package dev.coms4156.project.individualproject.model;
-
+package model;
 import java.util.UUID;
 
 public class User {
@@ -8,7 +7,7 @@ public class User {
     private String email;
     private double budget;
     
-    // Constructors
+    // ---------- Constructors ----------
     public User() {
     }
     
@@ -18,7 +17,7 @@ public class User {
         this.budget = budget;
     }
     
-    // Getters and Setters
+    // ---------- Getters / Setters ----------
     public UUID getUserId() {
         return userId;
     }
