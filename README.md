@@ -76,6 +76,7 @@ Displays a welcome message with list of all users
 
 #### `/users/{userId}/budget-report`
 **GET** - Returns budget report as JSON
+        - Includes automatic warning texts
 
 #### `/users/{userId}/monthly-summary`
 **GET** - Monthly spending summary (HTML)
