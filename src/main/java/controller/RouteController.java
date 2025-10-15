@@ -70,6 +70,15 @@ public class RouteController {
                 .orElseThrow(() -> new NoSuchElementException("User " + userId + " not found"));
     }
 
+    /** Create new user - JSON version for curl */
+    @PostMapping(value = "/users", 
+                 consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<User> createUserJson(@RequestBody User user) {
+        User saved = mockApiService.addUser(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
     /** Create new user - HTML FORM that returns HTML response */
     @PostMapping(value = "/users/form", 
                  consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
@@ -97,6 +106,27 @@ public class RouteController {
         return ResponseEntity.status(HttpStatus.CREATED).body(html);
     }
 
+    /** Update user - JSON version for curl */
+    @PutMapping(value = "/users/{userId}",
+                consumes = MediaType.APPLICATION_JSON_VALUE,
+                produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<User> updateUserJson(
+            @PathVariable UUID userId,
+            @RequestBody User user) {
+        
+        Optional<User> existingUser = mockApiService.getUser(userId);
+        if (!existingUser.isPresent()) {
+            throw new NoSuchElementException("User " + userId + " not found");
+        }
+        
+        // For now, delete and recreate since we don't have update in service
+        mockApiService.deleteUser(userId);
+        User saved = mockApiService.addUser(user);
+        saved.setUserId(userId); // Keep the same user ID
+        
+        return ResponseEntity.ok(saved);
+    }
+
     /** Update user - HTML FORM that returns HTML response */
     @PostMapping(value = "/users/{userId}/update-form", 
                  consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
@@ -117,9 +147,9 @@ public class RouteController {
         user.setEmail(email);
         user.setBudget(budget);
         
-        mockApiService.deleteUser(userId); // Delete to recreate if exists
+        mockApiService.deleteUser(userId);
         User saved = mockApiService.addUser(user);
-        saved.setUserId(userId); // Keep the same user ID
+        saved.setUserId(userId);
         
         String html = "<html><body>" +
                 "<h2>User Updated Successfully!</h2>" +
@@ -165,14 +195,24 @@ public class RouteController {
                 "</body></html>";
     }
 
-    /** Delete user */
+    /** Delete user - JSON version */
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable UUID userId) {
+        boolean deleted = mockApiService.deleteUser(userId);
+        if (!deleted) {
+            throw new NoSuchElementException("User " + userId + " not found");
+        }
+        return ResponseEntity.ok(Map.of("deleted", true, "userId", userId));
+    }
+
+    /** Delete user - GET version for browser */
     @GetMapping("/deleteuser/{userId}")
     public String deleteUserViaGet(@PathVariable UUID userId) {
         boolean deleted = mockApiService.deleteUser(userId);
         if (!deleted) {
             throw new NoSuchElementException("User " + userId + " not found");
         }
-        return "User deleted successfully"; // Simple string response
+        return "User deleted successfully";
     }
 
     // ---------------------------------------------------------------------------
@@ -180,7 +220,6 @@ public class RouteController {
     // ---------------------------------------------------------------------------
 
     /** Get all transactions for a user */
-
     @GetMapping("/users/{userId}/transactions")
     public ResponseEntity<?> getUserTransactions(@PathVariable UUID userId) {
         try {
@@ -208,6 +247,24 @@ public class RouteController {
                 .filter(tx -> tx.getUserId().equals(userId))
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new NoSuchElementException("Transaction " + transactionId + " not found for user " + userId));
+    }
+
+    /** Create transaction - JSON version for curl */
+    @PostMapping(value = "/users/{userId}/transactions",
+                 consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Transaction> createTransactionJson(
+            @PathVariable UUID userId,
+            @RequestBody Transaction transaction) {
+        
+        if (!mockApiService.getUser(userId).isPresent()) {
+            throw new NoSuchElementException("User " + userId + " not found");
+        }
+        
+        // Ensure transaction belongs to correct user
+        transaction.setUserId(userId);
+        Transaction saved = mockApiService.addTransaction(transaction);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     /** Create transaction - HTML FORM version */
@@ -245,39 +302,66 @@ public class RouteController {
         }
     }
 
-        /** Simple HTML form for creating transactions */
-        @GetMapping(value = "/users/{userId}/transactions/create-form", produces = MediaType.TEXT_HTML_VALUE)
-        public String showCreateTransactionForm(@PathVariable UUID userId) {
-            if (!mockApiService.getUser(userId).isPresent()) {
-                throw new NoSuchElementException("User " + userId + " not found");
-            }
-            
-            return "<html><body>" +
-                    "<h2>Create New Transaction</h2>" +
-                    "<form action='/users/" + userId + "/transactions/form' method='post'>" +
-                    "Description: <input type='text' name='description' required><br><br>" +
-                    "Amount: <input type='number' name='amount' step='0.01' required><br><br>" +
-                    "Category: <select name='category' required>" +
-                    "<option value='FOOD'>Food</option>" +
-                    "<option value='TRANSPORTATION'>Transportation</option>" +
-                    "<option value='ENTERTAINMENT'>Entertainment</option>" +
-                    "<option value='UTILITIES'>Utilities</option>" +
-                    "<option value='SHOPPING'>Shopping</option>" +
-                    "<option value='HEALTHCARE'>Healthcare</option>" +
-                    "<option value='TRAVEL'>Travel</option>" +
-                    "<option value='EDUCATION'>Education</option>" +
-                    "<option value='OTHER'>Other</option>" +
-                    "</select><br><br>" +
-                    "<input type='submit' value='Create Transaction'>" +
-                    "</form>" +
-                    "</body></html>";
+    /** Update transaction - JSON version for curl */
+    @PutMapping(value = "/users/{userId}/transactions/{transactionId}",
+                consumes = MediaType.APPLICATION_JSON_VALUE,
+                produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Transaction> updateTransactionJson(
+            @PathVariable UUID userId,
+            @PathVariable UUID transactionId,
+            @RequestBody Map<String, Object> updates) {
+        
+        if (!mockApiService.getUser(userId).isPresent()) {
+            throw new NoSuchElementException("User " + userId + " not found");
         }
+        
+        Optional<Transaction> existing = mockApiService.getTransaction(transactionId);
+        if (!existing.isPresent() || !existing.get().getUserId().equals(userId)) {
+            throw new NoSuchElementException("Transaction " + transactionId + " not found for user " + userId);
+        }
+        
+        Optional<Transaction> updated = mockApiService.updateTransaction(transactionId, updates);
+        if (!updated.isPresent()) {
+            throw new NoSuchElementException("Transaction " + transactionId + " not found");
+        }
+        
+        return ResponseEntity.ok(updated.get());
+    }
 
-    /** Delete transaction */
+    /** Simple HTML form for creating transactions */
+    @GetMapping(value = "/users/{userId}/transactions/create-form", produces = MediaType.TEXT_HTML_VALUE)
+    public String showCreateTransactionForm(@PathVariable UUID userId) {
+        if (!mockApiService.getUser(userId).isPresent()) {
+            throw new NoSuchElementException("User " + userId + " not found");
+        }
+        
+        return "<html><body>" +
+                "<h2>Create New Transaction</h2>" +
+                "<form action='/users/" + userId + "/transactions/form' method='post'>" +
+                "Description: <input type='text' name='description' required><br><br>" +
+                "Amount: <input type='number' name='amount' step='0.01' required><br><br>" +
+                "Category: <select name='category' required>" +
+                "<option value='FOOD'>Food</option>" +
+                "<option value='TRANSPORTATION'>Transportation</option>" +
+                "<option value='ENTERTAINMENT'>Entertainment</option>" +
+                "<option value='UTILITIES'>Utilities</option>" +
+                "<option value='SHOPPING'>Shopping</option>" +
+                "<option value='HEALTHCARE'>Healthcare</option>" +
+                "<option value='TRAVEL'>Travel</option>" +
+                "<option value='EDUCATION'>Education</option>" +
+                "<option value='OTHER'>Other</option>" +
+                "</select><br><br>" +
+                "<input type='submit' value='Create Transaction'>" +
+                "</form>" +
+                "</body></html>";
+    }
+
+    /** Delete transaction - JSON version */
     @DeleteMapping("/users/{userId}/transactions/{transactionId}")
     public ResponseEntity<Map<String, Object>> deleteTransaction(
             @PathVariable UUID userId, 
             @PathVariable UUID transactionId) {
+        
         if (!mockApiService.getUser(userId).isPresent()) {
             throw new NoSuchElementException("User " + userId + " not found");
         }
@@ -292,6 +376,29 @@ public class RouteController {
             throw new NoSuchElementException("Transaction " + transactionId + " not found");
         }
         return ResponseEntity.ok(Map.of("deleted", true, "userId", userId, "transactionId", transactionId));
+    }
+
+    /** Delete transaction - GET version for browser */
+    @GetMapping("/users/{userId}/deletetransaction/{transactionId}")
+    public String deleteTransactionViaGet(
+            @PathVariable UUID userId, 
+            @PathVariable UUID transactionId) {
+        
+        if (!mockApiService.getUser(userId).isPresent()) {
+            return "Error: User " + userId + " not found";
+        }
+        
+        Optional<Transaction> existing = mockApiService.getTransaction(transactionId);
+        if (!existing.isPresent() || !existing.get().getUserId().equals(userId)) {
+            return "Error: Transaction " + transactionId + " not found for user " + userId;
+        }
+        
+        boolean deleted = mockApiService.deleteTransaction(transactionId);
+        if (!deleted) {
+            return "Error: Failed to delete transaction " + transactionId;
+        }
+        
+        return "Transaction deleted successfully!";
     }
 
     // ---------------------------------------------------------------------------
@@ -333,7 +440,23 @@ public class RouteController {
                 "</body></html>";
     }
 
-    /** Update budget */
+    /** Update budget - JSON version for curl */
+    @PutMapping(value = "/users/{userId}/budget",
+                consumes = MediaType.APPLICATION_JSON_VALUE,
+                produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> updateBudgetJson(
+            @PathVariable UUID userId,
+            @RequestBody Map<String, Object> budgetUpdate) {
+        
+        if (!mockApiService.getUser(userId).isPresent()) {
+            throw new NoSuchElementException("User " + userId + " not found");
+        }
+        
+        mockApiService.setBudgets(userId, budgetUpdate);
+        return ResponseEntity.ok(mockApiService.getBudgetReport(userId));
+    }
+
+    /** Update budget - HTML FORM version */
     @PostMapping(value = "/users/{userId}/update-budget", 
                  consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
                  produces = MediaType.TEXT_HTML_VALUE)
@@ -401,6 +524,7 @@ public class RouteController {
         String summary = mockApiService.getMonthlySummary(userId);
         return "<html><body>" +
                 "<h1>Monthly Summary</h1>" +
+                "<pre>" + summary + "</pre>" +
                 "</body></html>";
     }
 
@@ -428,6 +552,4 @@ public class RouteController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", ex.getMessage()));
     }
-
-    
 }
