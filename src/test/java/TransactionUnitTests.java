@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 import model.Transaction;
-import model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -124,7 +123,7 @@ public class TransactionUnitTests {
 
   @Test
   void testEffectiveInstantTimestampNotNull() {
-    LocalDateTime timestamp = LocalDateTime.of(2025,10,20,10,15);
+    LocalDateTime timestamp = LocalDateTime.of(2025, 10, 20, 10, 15);
     transaction.setTimestamp(timestamp);
     LocalDateTime test = transaction.effectiveInstant();
     assertEquals(timestamp, test);
@@ -132,11 +131,11 @@ public class TransactionUnitTests {
 
   @Test
   void testEffectiveInstantTimeStampNullDateNotNull() { 
-    LocalDate date = LocalDate.of(2025,10,20);
+    LocalDate date = LocalDate.of(2025, 10, 20);
     transaction.setDate(date);
     transaction.setTimestamp(null);
     LocalDateTime test = transaction.effectiveInstant();
-    assertEquals(date.atStartOfDay(),test);
+    assertEquals(date.atStartOfDay(), test);
   }
 
   @Test
