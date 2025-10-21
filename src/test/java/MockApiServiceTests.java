@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,11 +37,26 @@ public class MockApiServiceTests {
   @InjectMocks
   private MockApiService service;
 
+  private User user;
+  private UUID userId;
+  private Transaction transaction;
+  private UUID transactionId;
+
+
   @BeforeEach
   public void setup() {
+    user = new User();
+    userId = user.getUserId();
+    transaction = new Transaction(
+      userId, 
+      10.0, 
+      "category", 
+      "description");
+    transactionId = transaction.getTransactionId();
     MockitoAnnotations.openMocks(this);
-
   }
+
+  // ---------- User CRUD Tests ----------
 
   @Test
   public void testViewAllUsers() {
@@ -68,8 +82,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testGetUserFound() {
-    User user = new User();
-    UUID userId = user.getUserId();
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -79,8 +91,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testGetUserNotFound() {
-    User user = new User();
-    UUID userId = user.getUserId();
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -93,8 +103,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testAddUserSuccess() {
-    User user = new User();
-    UUID userId = user.getUserId();
     when(jdbcTemplate.queryForObject(
       anyString(), 
       eq(UUID.class), 
@@ -109,8 +117,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testDeleteUserSuccess() {
-    User user = new User();
-    UUID userId = user.getUserId();
     when(jdbcTemplate.update(anyString(), eq(userId)))
         .thenReturn(1);
     boolean result = service.deleteUser(userId);
@@ -119,8 +125,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testDeleteUserFail() {
-    User user = new User();
-    UUID userId = user.getUserId();
     when(jdbcTemplate.update(anyString(), eq(userId)))
         .thenReturn(0);
     boolean result = service.deleteUser(userId);
@@ -128,20 +132,10 @@ public class MockApiServiceTests {
 
   }
 
-  // @Test
-  // public void testViewAllTransactions() {
-
-  // }
-
-  // @Test
-  // public void testGetAllTransactions() {
-
-  // }
+  // ---------- Transaction CRUD Tests ----------
 
   @Test
   public void testAddTransactionSuccess() {
-    UUID userId = UUID.randomUUID();
-    Transaction transaction = new Transaction(userId, 10.0, "category", "description");
     when(jdbcTemplate.update(
         anyString(),
         eq(transaction.getUserId()),
@@ -159,8 +153,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testAddTransactionFail() {
-    UUID userId = UUID.randomUUID();
-    Transaction transaction = new Transaction(userId, 10.0, "category", "description");
     when(jdbcTemplate.update(
         anyString(),
         eq(transaction.getUserId()),
@@ -174,12 +166,11 @@ public class MockApiServiceTests {
     });
 
     assertTrue(exception.getMessage().contains("Failed to create transaction"));
-
   }
 
   @Test
   public void testGetTransactionsByUserFail() {
-    UUID userId = UUID.randomUUID();
+    // UUID userId = UUID.randomUUID();
     when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<User>>any(), eq(userId)))
         .thenThrow(new RuntimeException("Error"));
     RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -190,14 +181,8 @@ public class MockApiServiceTests {
 
   }
 
-  // @Test
-  // public void testGetTransactionsByUserSuccess() {
-
-  // }
-
   @Test
   public void testUpdateTransactionNotFound() {
-    UUID transactionId = UUID.randomUUID();
     Map<String, Object> updates = Map.of("key1", "key2");
     when(jdbcTemplate.queryForObject(
         anyString(),
@@ -210,11 +195,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testUpdateTransactionSuccess() {
-    User user = new User();
-    UUID userId = user.getUserId();
-    Transaction transaction = new Transaction(userId, 1.0, "category", "description");
-    UUID transactionId = transaction.getTransactionId();
-
     when(jdbcTemplate.queryForObject(
         anyString(),
         ArgumentMatchers.<RowMapper<Transaction>>any(),
@@ -248,11 +228,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testUpdateTransactionSuccessAmountisNumber() {
-    User user = new User();
-    UUID userId = user.getUserId();
-    Transaction transaction = new Transaction(userId, 1.0, "category", "description");
-    UUID transactionId = transaction.getTransactionId();
-
     when(jdbcTemplate.queryForObject(
         anyString(),
         ArgumentMatchers.<RowMapper<Transaction>>any(),
@@ -278,10 +253,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testUpdateTransactionFail() {
-    User user = new User();
-    UUID userId = user.getUserId();
-    Transaction transaction = new Transaction(userId, 1.0, "category", "description");
-    UUID transactionId = transaction.getTransactionId();
 
     Map<String, Object> updates = Map.of(
         "description", "new description", 
@@ -303,9 +274,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testDeleteTransactionSuccess() {
-    UUID userId = UUID.randomUUID();
-    Transaction transaction = new Transaction(userId, 10.0, "category", "description");
-    UUID transactionId = transaction.getTransactionId();
     when(jdbcTemplate.update(anyString(), eq(transactionId)))
         .thenReturn(1);
     boolean result = service.deleteTransaction(transactionId);
@@ -314,18 +282,16 @@ public class MockApiServiceTests {
 
   @Test
   public void testDeleteTransactionFail() {
-    UUID userId = UUID.randomUUID();
-    Transaction transaction = new Transaction(userId, 10.0, "category", "description");
-    UUID transactionId = transaction.getTransactionId();
     when(jdbcTemplate.update(anyString(), eq(transactionId)))
         .thenReturn(0);
     boolean result = service.deleteTransaction(transactionId);
     assertFalse(result);
   }
 
+  // ---------- Budget Analytics Tests ----------
+
   @Test
   public void testGetBudgetsTextBlockUserNotFound() {
-    UUID userId = UUID.randomUUID();
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -337,9 +303,7 @@ public class MockApiServiceTests {
 
   @Test
   public void testGetBudgetsTextBlockUserFound() {
-    User user = new User();
     user.setUsername("User");
-    UUID userId = user.getUserId();
     List<Transaction> transactions = List.of(
         new Transaction(userId, 1.0, "category", "description"),
         new Transaction(userId, 2.0, "category2", "description2"));
@@ -358,12 +322,10 @@ public class MockApiServiceTests {
     String test = service.getBudgetsTextBlock(userId);
     assertTrue(test.contains("User"));
     assertTrue(test.contains("3.0"));
-
   }
 
   @Test
   public void testGetBudgetWarningsTextUserNotFound() {
-    UUID userId = UUID.randomUUID();
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -375,12 +337,10 @@ public class MockApiServiceTests {
 
   @Test
   public void testGetBudgetWarningsTextNoBudgetLeft() {
-    User user = new User();
-    UUID userId = user.getUserId();
     user.setBudget(5.0);
 
     List<Transaction> transactions = List.of(
-        new Transaction(userId, 10.0, "category", "description"));
+        transaction);
 
     when(jdbcTemplate.queryForObject(
       anyString(), 
@@ -400,8 +360,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testGetBudgetWarningsTextTenthLeft() {
-    User user = new User();
-    UUID userId = user.getUserId();
     user.setBudget(10.0);
 
     List<Transaction> transactions = List.of(
@@ -425,7 +383,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testGetMonthlySummaryUserNotFound() {
-    UUID userId = UUID.randomUUID();
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -437,7 +394,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testGetBudgetReportUserNotFound() {
-    UUID userId = UUID.randomUUID();
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -449,7 +405,9 @@ public class MockApiServiceTests {
 
   @Test
   public void getBudgetReportSuccess() {
-    User user = new User("User", "email", 100.0);
+    user.setUsername("User");
+    user.setEmail("email");
+    user.setBudget(100.0);
     UUID userId = UUID.randomUUID();
     user.setUserId(userId);
     List<Transaction> transactions = List.of(
@@ -487,7 +445,6 @@ public class MockApiServiceTests {
 
   @Test
   public void testSetBudgetsUserNotFound() {
-    UUID userId = UUID.randomUUID();
     Map<String, Object> updates = Map.of("test1", "test2");
     when(jdbcTemplate.queryForObject(
       anyString(), 
@@ -499,13 +456,10 @@ public class MockApiServiceTests {
     });
 
     assertTrue(exception.getMessage().contains("User not found"));
-
   }
 
   @Test
   public void testSetBudgetsInvalidFormat() {
-    User user = new User();
-    UUID userId = user.getUserId();
     Map<String, Object> updates = Map.of("budget", true);
     user.setBudget(100.0);
     when(jdbcTemplate.queryForObject(
@@ -518,13 +472,10 @@ public class MockApiServiceTests {
     });
 
     assertTrue(exception.getMessage().contains("Invalid budget format"));
-
   }
 
   @Test
   public void testSetBudgetsNegativeBudget() {
-    User user = new User();
-    UUID userId = user.getUserId();
     Map<String, Object> updates = Map.of("budget", -100.0);
     user.setBudget(100.0);
     when(jdbcTemplate.queryForObject(

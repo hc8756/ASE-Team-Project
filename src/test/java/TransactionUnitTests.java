@@ -4,12 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Objects;
 import java.util.UUID;
 import model.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
 /**
  * This class contains the unit tests for the Ledger class.
@@ -29,9 +27,6 @@ public class TransactionUnitTests {
   
   // ---------- Getters / Setters Test ----------
 
-  // void testGetTransactionId() {
-  //   assertNotNull(transaction.getTransactionId());
-  // }
   @Test
   public void testSetTransactionId() {
     UUID expectedTransactionId = UUID.randomUUID();
@@ -98,16 +93,6 @@ public class TransactionUnitTests {
     assertEquals(timestamp, transaction.getTimestamp());
   }
 
-  // @Test
-  // public void testGetDate() {
-  //   assertNotNull(transaction.getDate());
-  // }
-
-  // // @Test
-  // // public void testSetDate() {
-    
-  // }
-
   @Test
   public void testGetCategory() {
     assertEquals(transaction.getCategory(), "Category");
@@ -147,20 +132,7 @@ public class TransactionUnitTests {
 
   // ---------- Comparables Test ----------
 
-  // @Test
-  // void testCompareTo() {
-
-  // }
 
   // ---------- Equality / Hash Test ----------
-
-  // @Test
-  // void testEquals()  {
-  // }
-
-  // @Test
-  // void testHashCode()  {
-
-  // }
 
 }
