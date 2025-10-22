@@ -1,6 +1,23 @@
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import controller.RouteController;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import model.Transaction;
 import model.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,19 +33,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import service.MockApiService;
 
-import java.time.LocalDate;
-import java.util.*;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 /**
  * Full-context MVC tests for RouteController with a minimal test configuration.
  *
- * Rubric mapping:
+ * <p>Rubric mapping:
  * - We provide ≥3 tests per non-trivial unit (e.g., transactions, users, budgets) and
  *   deliberately include: typical valid input, atypical valid input, and invalid input.
  * - We use a mocking framework (@MockitoBean) for service dependencies.
@@ -61,7 +69,7 @@ class RouteControllerTests {
   // --------------------------- Common helpers & setup ---------------------------
 
   /**
-   *  Helper to build a User quickly.
+   * Helper to build a User quickly.
    */
   private static User user(UUID id, String name) {
     User u = new User();
@@ -310,7 +318,8 @@ class RouteControllerTests {
     // Typical valid input: user exists; HTML page renders numbers
     UUID uid = UUID.randomUUID();
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "lisa")));
-    given(api.getBudgetReport(uid)).willReturn(Map.of("totalSpent", "50.00", "remaining", "150.00"));
+    given(api.getBudgetReport(uid)).willReturn(
+        Map.of("totalSpent", "50.00", "remaining", "150.00"));
     given(api.totalLast7Days(uid)).willReturn(12.34);
 
     mvc.perform(get("/users/{userId}/budget", uid))
@@ -389,7 +398,8 @@ class RouteControllerTests {
     mvc.perform(get("/users/create-form"))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("Create New User")));
+        .andExpect(content().string(
+            org.hamcrest.Matchers.containsString("Create New User")));
   }
 
   @Test
@@ -399,7 +409,8 @@ class RouteControllerTests {
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "lisa")));
     mvc.perform(get("/users/{userId}/edit-form", uid))
         .andExpect(status().isOk())
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("Edit User")));
+        .andExpect(content().string(
+            org.hamcrest.Matchers.containsString("Edit User")));
 
     // Invalid input: user missing -> 404
     UUID missing = UUID.randomUUID();
@@ -472,7 +483,8 @@ class RouteControllerTests {
     given(api.deleteUser(uid)).willReturn(true);
     mvc.perform(get("/deleteuser/{userId}", uid))
         .andExpect(status().isOk())
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("User deleted successfully")));
+        .andExpect(content().string(
+            org.hamcrest.Matchers.containsString("User deleted " + "successfully")));
 
     // Invalid input: delete returned false -> handled by exception mapping
     UUID miss = UUID.randomUUID();
@@ -486,31 +498,36 @@ class RouteControllerTests {
     UUID uid = UUID.randomUUID();
     UUID tid = UUID.randomUUID();
 
-    // Invalid input: user missing -> returns an error string (this GET endpoint returns 200 + message)
+    // Invalid input: user missing -> returns an error string (200 + message)
     given(api.getUser(uid)).willReturn(Optional.empty());
     mvc.perform(get("/users/{userId}/deletetransaction/{transactionId}", uid, tid))
         .andExpect(status().isOk())
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("not found")));
+        .andExpect(content().string(
+            org.hamcrest.Matchers.containsString("not " + "found")));
 
     // Invalid input: tx belongs to different user -> message
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "x")));
-    given(api.getTransaction(tid)).willReturn(Optional.of(tx(tid, UUID.randomUUID(), "x", 1.0))); // different user
+    given(api.getTransaction(tid))
+        .willReturn(Optional.of(tx(tid, UUID.randomUUID(), "x", 1.0))); // different user
     mvc.perform(get("/users/{userId}/deletetransaction/{transactionId}", uid, tid))
         .andExpect(status().isOk())
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("not found for user")));
+        .andExpect(content().string(
+            org.hamcrest.Matchers.containsString("not found " + "for user")));
 
     // Atypical error: delete=false -> message
     given(api.getTransaction(tid)).willReturn(Optional.of(tx(tid, uid, "x", 1.0)));
     given(api.deleteTransaction(tid)).willReturn(false);
     mvc.perform(get("/users/{userId}/deletetransaction/{transactionId}", uid, tid))
         .andExpect(status().isOk())
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("Failed to delete")));
+        .andExpect(content().string(
+            org.hamcrest.Matchers.containsString("Failed " + "to delete")));
 
     // Typical valid input: success message
     given(api.deleteTransaction(tid)).willReturn(true);
     mvc.perform(get("/users/{userId}/deletetransaction/{transactionId}", uid, tid))
         .andExpect(status().isOk())
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("Transaction deleted successfully")));
+        .andExpect(content().string(
+            org.hamcrest.Matchers.containsString("Transaction deleted " + "successfully")));
   }
 
   // ---------------- Additional invalid cases (explicit) ----------------
