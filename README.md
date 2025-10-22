@@ -20,14 +20,7 @@ It is built with Spring Boot (Java), uses a Cloud SQL database, and exposes REST
 - Maven Checkstyle Plugin 3.2.0
 - Google Cloud SQL instance (configured for this project)
 
-2. Run the application
-```bash
-mvn compile
-mvn spring-boot:run
-```
-Once started, navigate to http://127.0.0.1:8080 in your web browser.
-
-3. Database setup
+2. Database setup
 
 Make sure the SQL instance running our database is active before starting the application.
 - Go to [Google Cloud Console](https://console.cloud.google.com/welcome/new?authuser=1&project=ase-group-project-474618)
@@ -35,6 +28,13 @@ Make sure the SQL instance running our database is active before starting the ap
 - Open **Cloud SQL → Instances**
 - Select **ase-project-db**
 - Click **Start** or **Stop** as needed
+
+3. Run the application
+```bash
+mvn compile
+mvn spring-boot:run
+```
+Once started, navigate to http://127.0.0.1:8080 in your web browser.
 
 ## API Documentation
 
