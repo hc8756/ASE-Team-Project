@@ -5,8 +5,8 @@ Repository for Team GLACJ's Fall 2025 Advanced Software Engineering team project
 
 This project implements a Ledger Service that allows users to:
 - Manage users and their transactions
-Track budgets and spending summaries
-View analytics such as weekly and monthly summaries
+  Track budgets and spending summaries
+  View analytics such as weekly and monthly summaries
 
 It is built with Spring Boot (Java), uses a Cloud SQL database, and exposes RESTful APIs for client interaction.
 
@@ -34,7 +34,7 @@ Make sure the SQL instance running our database is active before starting the ap
 mvn compile
 mvn spring-boot:run
 ```
-Once started, navigate to http://127.0.0.1:8080 in your web browser.
+Once started, navigate to http://127.0.0.1:8080 or http://localhost:8080/ in your web browser.
 
 ## API Documentation
 
@@ -120,7 +120,7 @@ The report is accessible at `target/site/checkstyle.html`. A copy of a clean rep
 
 ## Documentation
 
-All source files are documented using Javadoc and inline comments explaining implementation details where relevant.  
+All source files are documented using Javadoc and inline comments explaining implementation details where relevant.
 
 Both JaCoCo and Checkstyle reports are included in the root directory of the repository.
 
@@ -137,8 +137,8 @@ Official documentation and reference materials used throughout the project inclu
 - **Google Java Style Guide (Checkstyle Rules):** https://google.github.io/styleguide/javaguide.html
 - **Spring Testing (MockMvc):** https://docs.spring.io/spring-framework/docs/current/reference/html/testing.html#spring-mvc-test-framework
 
-We used **GitHub Issues** to track progress and assign tasks.  
+We used **GitHub Issues** to track progress and assign tasks.
 
-Individual member contributions can be viewed under the **Issues** section of this repository. 
+Individual member contributions can be viewed under the **Issues** section of this repository.
 
 All team members participated in reviewing and merging pull requests to ensure code quality and consistency.

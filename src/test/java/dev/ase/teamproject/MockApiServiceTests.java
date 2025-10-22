@@ -1,3 +1,5 @@
+package dev.ase.teamproject;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -9,12 +11,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import dev.ase.teamproject.model.Transaction;
+import dev.ase.teamproject.model.User;
+import dev.ase.teamproject.service.MockApiService;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import model.Transaction;
-import model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
@@ -23,12 +26,10 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import service.MockApiService;
 
 /**
- * This class contains the unit tests for the MockApiTests class.
+ * This class contains the unit tests for the MockApiService class.
  */
-
 public class MockApiServiceTests {
 
   @Mock
@@ -42,12 +43,11 @@ public class MockApiServiceTests {
   private Transaction transaction;
   private UUID transactionId;
 
-
   /**
-   * Setup method to initialize mocks and test data before each test case.
+   * Initializes mock objects and sets up test data before each test run.
    */
   @BeforeEach
-  public void setup() {
+  public void setUp() {
     user = new User();
     userId = user.getUserId();
     transaction = new Transaction(
@@ -59,10 +59,8 @@ public class MockApiServiceTests {
     MockitoAnnotations.openMocks(this);
   }
 
-  // ---------- User CRUD Tests ----------
-
   @Test
-  public void testViewAllUsers() {
+  public void viewAllUsers_twoUsersExist_returnsListOfTwo() {
     List<User> users = List.of(new User(), new User());
     when(jdbcTemplate.query(
       anyString(), 
@@ -73,7 +71,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testViewAllUsersNoUsers() {
+  public void viewAllUsers_noUsersExist_returnsEmptyList() {
     List<User> users = List.of();
     when(jdbcTemplate.query(
       anyString(), 
@@ -84,7 +82,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testGetUserFound() {
+  public void getUser_userExists_returnsUser() {
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -93,7 +91,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testGetUserNotFound() {
+  public void getUser_userDoesNotExist_returnsEmptyOptional() {
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -105,7 +103,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testAddUserSuccess() {
+  public void addUser_validInput_returnsUserWithGeneratedId() {
     when(jdbcTemplate.queryForObject(
       anyString(), 
       eq(UUID.class), 
@@ -119,7 +117,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testDeleteUserSuccess() {
+  public void deleteUser_userExists_returnsTrue() {
     when(jdbcTemplate.update(anyString(), eq(userId)))
         .thenReturn(1);
     boolean result = service.deleteUser(userId);
@@ -127,7 +125,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testDeleteUserFail() {
+  public void deleteUser_userDoesNotExist_returnsFalse() {
     when(jdbcTemplate.update(anyString(), eq(userId)))
         .thenReturn(0);
     boolean result = service.deleteUser(userId);
@@ -135,10 +133,8 @@ public class MockApiServiceTests {
 
   }
 
-  // ---------- Transaction CRUD Tests ----------
-
   @Test
-  public void testAddTransactionSuccess() {
+  public void addTransaction_validTransaction_returnsSavedTransaction() {
     when(jdbcTemplate.update(
         anyString(),
         eq(transaction.getUserId()),
@@ -155,7 +151,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testAddTransactionFail() {
+  public void addTransaction_failedTransaction_throwsRuntimeException() {
     when(jdbcTemplate.update(
         anyString(),
         eq(transaction.getUserId()),
@@ -172,8 +168,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testGetTransactionsByUserFail() {
-    // UUID userId = UUID.randomUUID();
+  public void getTransactionsByUser_queryFails_throwsRuntimeException() {
     when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<User>>any(), eq(userId)))
         .thenThrow(new RuntimeException("Error"));
     RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -185,7 +180,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testUpdateTransactionNotFound() {
+  public void updateTransaction_transactionNotFound_returnsEmptyOptional() {
     Map<String, Object> updates = Map.of("key1", "key2");
     when(jdbcTemplate.queryForObject(
         anyString(),
@@ -197,7 +192,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testUpdateTransactionSuccess() {
+  public void updateTransaction_validUpdates_returnsUpdatedTransaction() {
     when(jdbcTemplate.queryForObject(
         anyString(),
         ArgumentMatchers.<RowMapper<Transaction>>any(),
@@ -230,7 +225,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testUpdateTransactionSuccessAmountisNumber() {
+  public void updateTransaction_amountIsNumeric_returnsUpdatedTransaction() {
     when(jdbcTemplate.queryForObject(
         anyString(),
         ArgumentMatchers.<RowMapper<Transaction>>any(),
@@ -255,7 +250,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testUpdateTransactionFail() {
+  public void updateTransaction_updateFails_returnsEmptyOptional() {
 
     Map<String, Object> updates = Map.of(
         "description", "new description", 
@@ -276,7 +271,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testDeleteTransactionSuccess() {
+  public void deleteTransaction_transactionExists_returnsTrue() {
     when(jdbcTemplate.update(anyString(), eq(transactionId)))
         .thenReturn(1);
     boolean result = service.deleteTransaction(transactionId);
@@ -284,17 +279,15 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testDeleteTransactionFail() {
+  public void deleteTransaction_transactionDoesNotExist_returnsFalse() {
     when(jdbcTemplate.update(anyString(), eq(transactionId)))
         .thenReturn(0);
     boolean result = service.deleteTransaction(transactionId);
     assertFalse(result);
   }
 
-  // ---------- Budget Analytics Tests ----------
-
   @Test
-  public void testGetBudgetsTextBlockUserNotFound() {
+  public void getBudgetsTextBlock_userNotFound_returnsUserNotFoundMessage() {
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -305,7 +298,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testGetBudgetsTextBlockUserFound() {
+  public void getBudgetsTextBlock_userFound_returnsBudgetSummaryText() {
     user.setUsername("User");
     List<Transaction> transactions = List.of(
         new Transaction(userId, 1.0, "category", "description"),
@@ -328,7 +321,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testGetBudgetWarningsTextUserNotFound() {
+  public void getBudgetWarningsText_userNotFound_returnsUserNotFoundMessage() {
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -339,7 +332,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testGetBudgetWarningsTextNoBudgetLeft() {
+  public void getBudgetWarningsText_userOverBudget_returnsOverBudgetWarning() {
     user.setBudget(5.0);
 
     List<Transaction> transactions = List.of(
@@ -357,12 +350,12 @@ public class MockApiServiceTests {
         .thenReturn(transactions);
 
     String test = service.getBudgetWarningsText(userId);
-    assertTrue(test.contains("⚠️ OVER BUDGET! You have exceeded your budget by $"));
+    assertTrue(test.contains("OVER BUDGET! You have exceeded your budget by $"));
     assertTrue(test.contains("5.0"));
   }
 
   @Test
-  public void testGetBudgetWarningsTextTenthLeft() {
+  public void getBudgetWarningsText_userNearBudgetLimit_returnsWarningMessage() {
     user.setBudget(10.0);
 
     List<Transaction> transactions = List.of(
@@ -380,12 +373,12 @@ public class MockApiServiceTests {
         .thenReturn(transactions);
 
     String test = service.getBudgetWarningsText(userId);
-    assertTrue(test.contains("⚠️ Budget warning: Only"));
+    assertTrue(test.contains("Budget warning: Only"));
     assertTrue(test.contains("0.5"));
   }
 
   @Test
-  public void testGetMonthlySummaryUserNotFound() {
+  public void getMonthlySummary_userNotFound_returnsUserNotFoundMessage() {
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -396,7 +389,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testGetBudgetReportUserNotFound() {
+  public void getBudgetReport_userNotFound_returnsErrorMap() {
     when(jdbcTemplate.queryForObject(
       anyString(), 
       ArgumentMatchers.<RowMapper<User>>any(), 
@@ -407,7 +400,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void getBudgetReportSuccess() {
+  public void getBudgetReport_userFound_returnsValidReport() {
     user.setUsername("User");
     user.setEmail("email");
     user.setBudget(100.0);
@@ -447,7 +440,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testSetBudgetsUserNotFound() {
+  public void setBudgets_userNotFound_throwsIllegalArgumentException() {
     Map<String, Object> updates = Map.of("test1", "test2");
     when(jdbcTemplate.queryForObject(
       anyString(), 
@@ -462,7 +455,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testSetBudgetsInvalidFormat() {
+  public void setBudgets_invalidFormat_throwsIllegalArgumentException() {
     Map<String, Object> updates = Map.of("budget", true);
     user.setBudget(100.0);
     when(jdbcTemplate.queryForObject(
@@ -478,7 +471,7 @@ public class MockApiServiceTests {
   }
 
   @Test
-  public void testSetBudgetsNegativeBudget() {
+  public void setBudgets_negativeBudget_throwsIllegalArgumentException() {
     Map<String, Object> updates = Map.of("budget", -100.0);
     user.setBudget(100.0);
     when(jdbcTemplate.queryForObject(
