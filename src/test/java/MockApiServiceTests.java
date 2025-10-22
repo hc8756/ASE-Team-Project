@@ -43,6 +43,9 @@ public class MockApiServiceTests {
   private UUID transactionId;
 
 
+  /**
+   * Setup method to initialize mocks and test data before each test case.
+   */
   @BeforeEach
   public void setup() {
     user = new User();

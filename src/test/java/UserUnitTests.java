@@ -1,15 +1,15 @@
-import org.junit.jupiter.api.Test;
-
-import model.User;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
+import model.User;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for the simple User POJO.
  *
- * Rubric mapping:
+ * <p>Rubric mapping:
  * - For each “unit” (constructor and getters/setters), we include cases that represent
  *   typical values and edge-ish cases (e.g., default/zero), and we point out where an
  *   “invalid” concept would normally live (this class itself has no validation logic).
