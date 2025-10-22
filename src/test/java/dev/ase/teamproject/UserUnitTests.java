@@ -1,29 +1,20 @@
+package dev.ase.teamproject;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+import dev.ase.teamproject.model.User;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-import model.User;
-
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Unit tests for the simple User POJO.
- *
- * Rubric mapping:
- * - For each “unit” (constructor and getters/setters), we include cases that represent
- *   typical values and edge-ish cases (e.g., default/zero), and we point out where an
- *   “invalid” concept would normally live (this class itself has no validation logic).
- * - Tests are grouped in one class for this model (related tests grouped together).
- * - Tests run via JUnit/Maven (automated test runner).
+ * This class contains the unit tests for the User class.
  */
 class UserUnitTests {
 
-  /**
-   * Edge / boundary case: default constructor should leave reference fields null
-   * and primitives at their default (0.0). This is our "empty object" baseline.
-   */
   @Test
-  void defaultConstructor_allFieldsNullOrZero() {
+  public void constructor_defaultValues_allFieldsNullOrZero() {
     User u = new User();
     assertNull(u.getUserId());
     assertNull(u.getUsername());
@@ -31,12 +22,8 @@ class UserUnitTests {
     assertEquals(0.0, u.getBudget());
   }
 
-  /**
-   * Typical valid input: parameterized constructor sets fields that are provided.
-   * Note: userId is intentionally left null (DB would assign it later).
-   */
   @Test
-  void parameterizedConstructor_setsFieldsCorrectly() {
+  public void constructor_withValidParameters_setsProvidedFields() {
     User u = new User("lisa", "lisa@x.com", 200.0);
     assertEquals("lisa", u.getUsername());
     assertEquals("lisa@x.com", u.getEmail());
@@ -44,12 +31,8 @@ class UserUnitTests {
     assertNull(u.getUserId()); // DB assigns later
   }
 
-  /**
-   * Typical valid input for setters/getters. This also covers the “equivalence class”
-   * where all fields are explicitly set after construction.
-   */
   @Test
-  void gettersAndSetters_workIndividually() {
+  public void gettersAndSetters_allFieldsSet_explicitValuesReturned() {
     User u = new User();
 
     UUID id = UUID.randomUUID();
@@ -64,12 +47,8 @@ class UserUnitTests {
     assertEquals(500.5, u.getBudget());
   }
 
-  /**
-   * Atypical but valid: fields can be changed after creation (mutability).
-   * This checks that later updates are reflected (e.g., budget and email changes).
-   */
   @Test
-  void canModifyFieldsAfterCreation() {
+  public void setters_existingFieldsUpdated_newValuesReflected() {
     User u = new User("alice", "a@b.com", 100);
     u.setBudget(999.99);
     u.setEmail("new@b.com");
@@ -78,12 +57,8 @@ class UserUnitTests {
     assertEquals("new@b.com", u.getEmail());
   }
 
-  /**
-   * Another typical case: distinct users can be assigned unique IDs.
-   * (If the app later enforces constraints, this test documents expected distinctness.)
-   */
   @Test
-  void uniqueUserIdsCanBeAssigned() {
+  public void setUserId_twoDistinctIds_assignedIdsRemainUnique() {
     User u1 = new User();
     User u2 = new User();
     UUID id1 = UUID.randomUUID();

@@ -1,35 +1,55 @@
-package service;
+package dev.ase.teamproject.service;
 
+import dev.ase.teamproject.model.Transaction;
+import dev.ase.teamproject.model.User;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import model.Transaction;
-import model.User;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
-/** JDBC assisted functions that bridge java app and database. */
+/**
+ * This class defines the Mock API Service responsible for managing
+ * interactions between the application and the PostgreSQL database.
+ * <p>
+ *  It provides CRUD operations for users and transactions, as well as
+ *  analytics and budgeting functionalities.
+ *  All methods in this class use the Spring JdbcTemplate for data access.
+ * </p>
+ */
 @Service
 public class MockApiService {
   private final JdbcTemplate jdbcTemplate;
 
+  /**
+   * Constructs a new {@code MockApiService} with the specified {@code JdbcTemplate}.
+   *
+   * @param jdbcTemplate A {@code JdbcTemplate} used to communicate with the database.
+   */
   public MockApiService(JdbcTemplate jdbcTemplate) {
     this.jdbcTemplate = jdbcTemplate;
   }
 
-  // ========== USER CRUD OPERATIONS ==========
-
-  /** Retrieves all users from the database. */
+  /**
+   * Retrieves all users from the database.
+   *
+   * @return A {@code List} of all {@code User} records.
+   */
   public List<User> viewAllUsers() {
     String sql = "SELECT * FROM users";
     return jdbcTemplate.query(sql, userRowMapper);
   }
 
-  /** Gets a specific user by their unique identifier. */
+  /**
+   * Retrieves a specific user by their unique identifier.
+   *
+   * @param userId The {@code UUID} of the user to retrieve.
+   * @return An {@code Optional} containing the {@code User} if found, or empty if not found.
+   */
   public Optional<User> getUser(UUID userId) {
     String sql = "SELECT * FROM users WHERE user_id = ?";
     try {
@@ -40,7 +60,12 @@ public class MockApiService {
     }
   }
 
-  /** Adds a new user to the database and returns the created user. */
+  /**
+   * Adds a new user to the database.
+   *
+   * @param user The {@code User} object containing username, email, and budget values.
+   * @return The created {@code User} object with a generated {@code UUID}.
+   */
   public User addUser(User user) {
     String sql = "INSERT INTO users (username, email, budget) VALUES (?, ?, ?) RETURNING user_id";
     UUID generatedUserId = jdbcTemplate.queryForObject(sql, UUID.class, 
@@ -49,22 +74,34 @@ public class MockApiService {
     return user;
   }
 
-  /** Deletes a user from the database by their ID. */
+  /**
+   * Deletes a user by their unique identifier.
+   *
+   * @param userId The {@code UUID} of the user to delete.
+   * @return {@code true} if a record was deleted; {@code false} otherwise.
+   */
   public boolean deleteUser(UUID userId) {
     String sql = "DELETE FROM users WHERE user_id = ?";
     int rowsAffected = jdbcTemplate.update(sql, userId);
     return rowsAffected > 0;
   }
 
-  // ========== TRANSACTION CRUD OPERATIONS ==========
-
-  /** Retrieves all transactions sorted by most recent. */
+  /**
+   * Retrieves all transactions sorted by most recent creation time.
+   *
+   * @return A {@code List} of {@code Transaction} objects sorted by {@code created_time}.
+   */
   public List<Transaction> viewAllTransactions() {
     String sql = "SELECT * FROM transactions ORDER BY created_time DESC";
     return jdbcTemplate.query(sql, transactionRowMapper);
   }
 
-  /** Gets a specific transaction by its unique identifier. */
+  /**
+   * Retrieves a specific transaction by its unique identifier.
+   *
+   * @param transactionId The {@code UUID} of the transaction to retrieve.
+   * @return An {@code Optional} containing the {@code Transaction} if found, or empty if not found.
+   */
   public Optional<Transaction> getTransaction(UUID transactionId) {
     String sql = "SELECT * FROM transactions WHERE transaction_id = ?";
     try {
@@ -76,7 +113,13 @@ public class MockApiService {
     }
   }
 
-  /** Creates a new transaction record in the database. */
+  /**
+   * Creates a new transaction record in the database.
+   *
+   * @param transaction The {@code Transaction} to insert.
+   * @return The created {@code Transaction}.
+   * @throws RuntimeException if the insert operation fails.
+   */
   public Transaction addTransaction(Transaction transaction) {
     try {
       String sql = "INSERT INTO transactions (user_id, description, amount, category)" 
@@ -92,7 +135,13 @@ public class MockApiService {
     }
   }
 
-  /** Retrieves all transactions for a specific user. */
+  /**
+   * Retrieves all transactions associated with a specific user.
+   *
+   * @param userId The {@code UUID} of the user.
+   * @return A {@code List} of the user's {@code Transaction} records.
+   * @throws RuntimeException if the query fails.
+   */
   public List<Transaction> getTransactionsByUser(UUID userId) {
     try {
       String sql = "SELECT * FROM transactions WHERE user_id = ? ORDER BY created_time DESC";
@@ -102,7 +151,13 @@ public class MockApiService {
     }
   }
 
-  /** Updates an existing transaction with new values. */
+  /**
+   * Updates an existing transaction record with new values.
+   *
+   * @param transactionId The {@code UUID} of the transaction to update.
+   * @param updates A {@code Map} containing the fields to modify and their new values.
+   * @return An {@code Optional} of the updated {@code Transaction}, or empty if the update failed.
+   */
   public Optional<Transaction> updateTransaction(UUID transactionId, Map<String, Object> updates) {
     Optional<Transaction> existing = getTransaction(transactionId);
     if (!existing.isPresent()) {
@@ -136,16 +191,24 @@ public class MockApiService {
     return Optional.empty();
   }
 
-  /** Deletes a transaction from the database. */
+  /**
+   * Deletes a transaction record by its unique identifier.
+   *
+   * @param transactionId The {@code UUID} of the transaction to delete.
+   * @return {@code true} if a record was deleted; {@code false} otherwise.
+   */
   public boolean deleteTransaction(UUID transactionId) {
     String sql = "DELETE FROM transactions WHERE transaction_id = ?";
     int rowsAffected = jdbcTemplate.update(sql, transactionId);
     return rowsAffected > 0;
   }
 
-  // ========== BUDGET & ANALYTICS OPERATIONS (User-specific) ==========
-
-  /** Generates a formatted text summary of user budget information. */
+  /**
+   * Generates a summary of a user's budget information.
+   *
+   * @param userId The {@code UUID} of the user.
+   * @return A formatted summary string with budget details and remaining balance.
+   */
   public String getBudgetsTextBlock(UUID userId) {
     Optional<User> userOpt = getUser(userId);
     if (!userOpt.isPresent()) {
@@ -167,7 +230,12 @@ public class MockApiService {
     );
   }
 
-  /** Generates budget warning messages for a user. */
+  /**
+   * Generates warning messages for users who are near or over their budget.
+   *
+   * @param userId The {@code UUID} of the user.
+   * @return A formatted string with warning messages, or an empty string if none apply.
+   */
   public String getBudgetWarningsText(UUID userId) {
     Optional<User> userOpt = getUser(userId);
     if (!userOpt.isPresent()) {
@@ -182,16 +250,21 @@ public class MockApiService {
     double remaining = user.getBudget() - totalSpent;
     StringBuilder warnings = new StringBuilder();
     if (remaining < 0) {
-      warnings.append("⚠️ OVER BUDGET! You have exceeded your budget by $")
+      warnings.append("OVER BUDGET! You have exceeded your budget by $")
           .append(String.format("%.2f", -remaining)).append("\n");
     } else if (remaining < user.getBudget() * 0.1) {
-      warnings.append("⚠️ Budget warning: Only $").append(String.format("%.2f", remaining))
+      warnings.append("Budget warning: Only $").append(String.format("%.2f", remaining))
           .append(" remaining (less than 10%)\n");
     }
     return warnings.toString();
   }
 
-  /** Generates a monthly spending summary with category breakdown. */
+  /**
+   * Generates a monthly spending summary with category breakdown.
+   *
+   * @param userId The {@code UUID} of the user.
+   * @return A formatted multi-line string summarizing the user's monthly spending.
+   */
   public String getMonthlySummary(UUID userId) {
     Optional<User> userOpt = getUser(userId);
     if (!userOpt.isPresent()) {
@@ -230,7 +303,12 @@ public class MockApiService {
     return summary.toString();
   }
 
-  /** Generates a comprehensive budget report with detailed analytics. */
+  /**
+   * Generates a budget report containing analytics, totals, and warnings.
+   *
+   * @param userId The {@code UUID} of the user.
+   * @return A {@code Map} with budget metrics and summaries.
+   */
   public Map<String, Object> getBudgetReport(UUID userId) {
     Optional<User> userOpt = getUser(userId);
     if (!userOpt.isPresent()) {
@@ -263,7 +341,13 @@ public class MockApiService {
     );
   }
 
-  /** Updates user budget settings with new values. */
+  /**
+   * Updates the user's budget with new settings or amounts.
+   *
+   * @param userId The {@code UUID} of the user.
+   * @param updates A {@code Map} containing updated budget values.
+   * @throws IllegalArgumentException if the user is not found or the budget is invalid.
+   */
   public void setBudgets(UUID userId, Map<String, Object> updates) {
     Optional<User> userOpt = getUser(userId);
     if (!userOpt.isPresent()) {
@@ -287,15 +371,25 @@ public class MockApiService {
     }
   }
 
-  /** Retrieves transactions from the past week for a user. */
+  /**
+   * Retrieves transactions created within the last seven days for a given user.
+   *
+   * @param userId The {@code UUID} of the user.
+   * @return Aa {@code List} of {@code Transaction} objects created within the past week.
+   */
   public List<Transaction> weeklySummary(UUID userId) {
     LocalDate oneWeekAgo = LocalDate.now().minusDays(7);
-    String sql = "SELECT * FROM transactions WHERE user_id = ? AND" 
-        + "created_date >= ? ORDER BY created_time DESC";
+    String sql = "SELECT * FROM transactions WHERE user_id = ? AND"
+        + " created_date >= ? ORDER BY created_time DESC";
     return jdbcTemplate.query(sql, transactionRowMapper, userId, oneWeekAgo);
   }
 
-  /** Calculates total spending for a user over the past seven days. */
+  /**
+   * Calculates the total spending for a user over the past seven days.
+   *
+   * @param userId The {@code UUID} of the user.
+   * @return The total spending amount for the last 7 days.
+   */
   public double totalLast7Days(UUID userId) {
     LocalDate oneWeekAgo = LocalDate.now().minusDays(7);
     String sql = "SELECT COALESCE(SUM(amount), 0) FROM transactions" 
@@ -308,8 +402,7 @@ public class MockApiService {
     }
   }
 
-  // ========== ROW MAPPERS ==========
-
+  /** Maps SQL query results to {@code User} objects. */
   private final RowMapper<User> userRowMapper = (rs, rowNum) -> {
     User user = new User();
     user.setUserId((UUID) rs.getObject("user_id"));
@@ -319,6 +412,7 @@ public class MockApiService {
     return user;
   };
 
+  /** Maps SQL query results to {@code Transaction} objects. */
   private final RowMapper<Transaction> transactionRowMapper = (rs, rowNum) -> {
     Transaction transaction = new Transaction();
     try {

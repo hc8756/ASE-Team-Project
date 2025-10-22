@@ -1,8 +1,30 @@
-import com.fasterxml.jackson.databind.ObjectMapper;
+package dev.ase.teamproject;
 
-import controller.RouteController;
-import model.Transaction;
-import model.User;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.ase.teamproject.controller.RouteController;
+import dev.ase.teamproject.model.Transaction;
+import dev.ase.teamproject.model.User;
+import dev.ase.teamproject.service.MockApiService;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,31 +36,20 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import service.MockApiService;
-
-import java.time.LocalDate;
-import java.util.*;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Full-context MVC tests for RouteController with a minimal test configuration.
- *
- * Rubric mapping:
- * - We provide ≥3 tests per non-trivial unit (e.g., transactions, users, budgets) and
- *   deliberately include: typical valid input, atypical valid input, and invalid input.
- * - We use a mocking framework (@MockitoBean) for service dependencies.
- * - We show a light setup method (@BeforeEach) to demonstrate setup/teardown practice.
- * - Tests are grouped by responsibility (users / transactions / budget) in one class.
+ * This class contains full-context MVC tests for the RouteController class
+ * with a minimal test configuration.
+ * <p>
+ * We use a mocking framework (@MockitoBean) for service dependencies
+ * and include a light setup method (@BeforeEach) to demonstrate setup and teardown practices.
+ * Tests are grouped by responsibility (users, transactions, budget) within this single class.
+ * </p>
  */
 @SpringBootTest(classes = RouteControllerTests.TestConfig.class)
 @AutoConfigureMockMvc
 @Import(RouteController.class) // Import the controller bean into the test context
-class RouteControllerTests {
+public class RouteControllerTests {
 
   /**
    * Minimal Spring Boot configuration for tests.
@@ -46,7 +57,7 @@ class RouteControllerTests {
    */
   @SpringBootConfiguration
   @EnableAutoConfiguration
-  static class TestConfig {
+  public static class TestConfig {
     // No beans needed here; @EnableAutoConfiguration + @Import(RouteController.class) is enough
   }
 
@@ -56,13 +67,8 @@ class RouteControllerTests {
   private final ObjectMapper json = new ObjectMapper();
 
   // Mock the service: the controller should be tested in isolation from the service layer.
-  @MockitoBean MockApiService api; // modern replacement for @MockBean (Boot 3.2+)
+  @MockitoBean MockApiService api;
 
-  // --------------------------- Common helpers & setup ---------------------------
-
-  /**
-   *  Helper to build a User quickly.
-   */
   private static User user(UUID id, String name) {
     User u = new User();
     u.setUserId(id);
@@ -72,9 +78,6 @@ class RouteControllerTests {
     return u;
   }
 
-  /**
-   * Helper to build a Transaction quickly.
-   */
   private static Transaction tx(UUID id, UUID userId, String desc, double amt) {
     Transaction t = new Transaction();
     t.setTransactionId(id);
@@ -86,17 +89,14 @@ class RouteControllerTests {
     return t;
   }
 
-  /**
-   * Light setup for "setup/teardown" rubric item.
-   */
   @BeforeEach
-  void setUp() {
+  public void setUp() {
     // Nothing to reset between tests right now, but this shows structured setup.
   }
 
   // ---------------- HOME (simple HTML route) ----------------
   @Test
-  void indexShowsUsers() throws Exception {
+  public void indexShowsUsers() throws Exception {
     // Typical valid input: one user in the system
     UUID uid = UUID.fromString("00000000-0000-0000-0000-000000000001");
     given(api.viewAllUsers()).willReturn(List.of(user(uid, "lisa")));
@@ -110,7 +110,7 @@ class RouteControllerTests {
   // ---------------- USERS (typical / atypical / invalid) ----------------
 
   @Test
-  void getUser_okAnd404() throws Exception {
+  public void getUser_okAnd404() throws Exception {
     // Typical valid input: an existing user id
     UUID uid = UUID.randomUUID();
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "a")));
@@ -126,7 +126,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void createUser_json_201_and_form_201() throws Exception {
+  public void createUser_json_201_and_form_201() throws Exception {
     // Typical valid JSON input
     UUID uid = UUID.randomUUID();
     User body = user(null, "neo");
@@ -151,7 +151,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void updateUser_404_then_200() throws Exception {
+  public void updateUser_404_then_200() throws Exception {
     UUID uid = UUID.randomUUID();
 
     // Invalid input: updating a user that does not exist -> 404
@@ -173,7 +173,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void deleteUser_ok_and_404() throws Exception {
+  public void deleteUser_ok_and_404() throws Exception {
     // Typical valid input: delete succeeds
     UUID ok = UUID.randomUUID();
     given(api.deleteUser(ok)).willReturn(true);
@@ -191,7 +191,7 @@ class RouteControllerTests {
   // ---------------- TRANSACTIONS (typical / atypical / invalid) ----------------
 
   @Test
-  void listUserTransactions_ok_404_500() throws Exception {
+  public void listUserTransactions_ok_404_500() throws Exception {
     UUID uid = UUID.randomUUID();
     UUID tid = UUID.randomUUID();
 
@@ -216,7 +216,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void getTransaction_ok_and_404() throws Exception {
+  public void getTransaction_ok_and_404() throws Exception {
     UUID uid = UUID.randomUUID();
     UUID tid = UUID.randomUUID();
 
@@ -235,7 +235,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void createTransaction_json_201_and_404() throws Exception {
+  public void createTransaction_json_201_and_404() throws Exception {
     UUID uid = UUID.randomUUID();
     UUID tid = UUID.randomUUID();
 
@@ -259,7 +259,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void updateTransaction_ok_and_404_user() throws Exception {
+  public void updateTransaction_ok_and_404_user() throws Exception {
     UUID uid = UUID.randomUUID();
     UUID tid = UUID.randomUUID();
 
@@ -284,7 +284,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void deleteTransaction_ok_and_404_user() throws Exception {
+  public void deleteTransaction_ok_and_404_user() throws Exception {
     UUID uid = UUID.randomUUID();
     UUID tid = UUID.randomUUID();
 
@@ -306,11 +306,12 @@ class RouteControllerTests {
   // ---------------- BUDGET (HTML + JSON paths; valid / invalid) ----------------
 
   @Test
-  void budgetPage_ok_and_404() throws Exception {
+  public void budgetPage_ok_and_404() throws Exception {
     // Typical valid input: user exists; HTML page renders numbers
     UUID uid = UUID.randomUUID();
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "lisa")));
-    given(api.getBudgetReport(uid)).willReturn(Map.of("totalSpent", "50.00", "remaining", "150.00"));
+    given(api.getBudgetReport(uid))
+        .willReturn(Map.of("totalSpent", "50.00", "remaining", "150.00"));
     given(api.totalLast7Days(uid)).willReturn(12.34);
 
     mvc.perform(get("/users/{userId}/budget", uid))
@@ -325,7 +326,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void budgetPut_ok_and_404() throws Exception {
+  public void budgetPut_ok_and_404() throws Exception {
     // Typical valid input: JSON update succeeds
     UUID uid = UUID.randomUUID();
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "x")));
@@ -347,7 +348,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void quickReports_weekly_monthly_json() throws Exception {
+  public void quickReports_weekly_monthly_json() throws Exception {
     // Atypical valid input: weekly summary empty & monthly summary plain text block
     UUID uid = UUID.randomUUID();
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "lisa")));
@@ -371,7 +372,7 @@ class RouteControllerTests {
   // ---------------- Extra error branches (explicit invalid classes) ----------------
 
   @Test
-  void listUserTransactions_500_onServiceThrow() throws Exception {
+  public void listUserTransactions_500_onServiceThrow() throws Exception {
     // Invalid situation: service throws unexpectedly -> 500
     UUID uid = UUID.randomUUID();
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "x")));
@@ -384,7 +385,7 @@ class RouteControllerTests {
   // ---------------- HTML FORM / ALIAS routes (extra coverage) ----------------
 
   @Test
-  void showCreateUserForm_200() throws Exception {
+  public void showCreateUserForm_200() throws Exception {
     // Atypical path: render HTML form
     mvc.perform(get("/users/create-form"))
         .andExpect(status().isOk())
@@ -393,7 +394,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void showEditUserForm_200_and_404() throws Exception {
+  public void showEditUserForm_200_and_404() throws Exception {
     // Typical valid input: user exists -> show edit form
     UUID uid = UUID.randomUUID();
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "lisa")));
@@ -409,7 +410,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void createTransaction_form_201_404_500() throws Exception {
+  public void createTransaction_form_201_404_500() throws Exception {
     UUID uid = UUID.randomUUID();
 
     // Invalid input: 404 user not found
@@ -445,7 +446,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void updateBudget_form_200_and_404() throws Exception {
+  public void updateBudget_form_200_and_404() throws Exception {
     // Typical valid input: HTML form submission works
     UUID uid = UUID.randomUUID();
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "lisa")));
@@ -466,13 +467,14 @@ class RouteControllerTests {
   }
 
   @Test
-  void deleteUser_viaGet_200_and_404() throws Exception {
+  public void deleteUser_viaGet_200_and_404() throws Exception {
     // Atypical valid input path: deletion via GET (HTML-friendly route)
     UUID uid = UUID.randomUUID();
     given(api.deleteUser(uid)).willReturn(true);
     mvc.perform(get("/deleteuser/{userId}", uid))
         .andExpect(status().isOk())
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("User deleted successfully")));
+        .andExpect(content()
+            .string(org.hamcrest.Matchers.containsString("User deleted successfully")));
 
     // Invalid input: delete returned false -> handled by exception mapping
     UUID miss = UUID.randomUUID();
@@ -482,11 +484,12 @@ class RouteControllerTests {
   }
 
   @Test
-  void deleteTransaction_viaGet_allOutcomes() throws Exception {
+  public void deleteTransaction_viaGet_allOutcomes() throws Exception {
     UUID uid = UUID.randomUUID();
     UUID tid = UUID.randomUUID();
 
-    // Invalid input: user missing -> returns an error string (this GET endpoint returns 200 + message)
+    // Invalid input: user missing ->
+    // returns an error string (this GET endpoint returns 200 + message)
     given(api.getUser(uid)).willReturn(Optional.empty());
     mvc.perform(get("/users/{userId}/deletetransaction/{transactionId}", uid, tid))
         .andExpect(status().isOk())
@@ -494,7 +497,7 @@ class RouteControllerTests {
 
     // Invalid input: tx belongs to different user -> message
     given(api.getUser(uid)).willReturn(Optional.of(user(uid, "x")));
-    given(api.getTransaction(tid)).willReturn(Optional.of(tx(tid, UUID.randomUUID(), "x", 1.0))); // different user
+    given(api.getTransaction(tid)).willReturn(Optional.of(tx(tid, UUID.randomUUID(), "x", 1.0)));
     mvc.perform(get("/users/{userId}/deletetransaction/{transactionId}", uid, tid))
         .andExpect(status().isOk())
         .andExpect(content().string(org.hamcrest.Matchers.containsString("not found for user")));
@@ -510,13 +513,14 @@ class RouteControllerTests {
     given(api.deleteTransaction(tid)).willReturn(true);
     mvc.perform(get("/users/{userId}/deletetransaction/{transactionId}", uid, tid))
         .andExpect(status().isOk())
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("Transaction deleted successfully")));
+        .andExpect(content()
+            .string(org.hamcrest.Matchers.containsString("Transaction deleted successfully!")));
   }
 
   // ---------------- Additional invalid cases (explicit) ----------------
 
   @Test
-  void getTransaction_404_whenTxBelongsToDifferentUser() throws Exception {
+  public void getTransaction_404_whenTxBelongsToDifferentUser() throws Exception {
     // Invalid: user exists but the transaction belongs to a different user
     UUID uid = UUID.randomUUID();
     UUID otherUser = UUID.randomUUID();
@@ -530,7 +534,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void updateTransaction_404_whenUpdateReturnsEmpty() throws Exception {
+  public void updateTransaction_404_whenUpdateReturnsEmpty() throws Exception {
     // Invalid: update call returns Optional.empty()
     UUID uid = UUID.randomUUID();
     UUID tid = UUID.randomUUID();
@@ -546,7 +550,7 @@ class RouteControllerTests {
   }
 
   @Test
-  void deleteTransaction_404_whenDeleteFalse() throws Exception {
+  public void deleteTransaction_404_whenDeleteFalse() throws Exception {
     // Invalid: API delete returns false -> controller converts to 404 via exception handler
     UUID uid = UUID.randomUUID();
     UUID tid = UUID.randomUUID();
