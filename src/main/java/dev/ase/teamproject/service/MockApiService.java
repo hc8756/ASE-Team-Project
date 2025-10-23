@@ -135,7 +135,7 @@ public class MockApiService {
           transaction.getDescription(),
           transaction.getAmount(),
           transaction.getCategory());
-      return savedTransaction;
+      return savedTransaction != null ? savedTransaction : transaction;
     } catch (Exception e) {
       throw new RuntimeException("Failed to create transaction: " + e.getMessage(), e);
     }

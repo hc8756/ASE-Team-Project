@@ -54,11 +54,11 @@ public class TransactionUnitTests {
   }
 
 
-// ---------------------------------------------------------------------------
-// getTransactionId, setTransactionId
-// ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // getTransactionId, setTransactionId
+  // ---------------------------------------------------------------------------
 
-  /** Incidentally tests getter, getter is not set upon construction */
+  /** Incidentally tests getter, getter is not set upon construction. */
   @Test
   public void setTransactionId_validId_transactionIdIsSet() {
     UUID expectedTransactionId = UUID.randomUUID();
@@ -67,9 +67,9 @@ public class TransactionUnitTests {
     assertEquals(expectedTransactionId, transactionId);
   }
 
-// ---------------------------------------------------------------------------
-// getUserId, setUserId
-// ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // getUserId, setUserId
+  // ---------------------------------------------------------------------------
 
   @Test
   public void getUserId_afterConstruction_returnsNonNullUserId() {
@@ -280,111 +280,111 @@ public class TransactionUnitTests {
   // compareTo
   // ---------------------------------------------------------------------------
 
-      @Test
-    void compareTo_nullOther_returnsPositive() {
-        Transaction t1 = new Transaction();
-        t1.setTimestamp(LocalDateTime.now());
-        t1.setTransactionId(UUID.randomUUID());
-        assertTrue(t1.compareTo(null) > 0);
-    }
+  @Test
+  void compareTo_nullOther_returnsPositive() {
+    Transaction t1 = new Transaction();
+    t1.setTimestamp(LocalDateTime.now());
+    t1.setTransactionId(UUID.randomUUID());
+    assertTrue(t1.compareTo(null) > 0);
+  }
 
-    @Test
-    void compareTo_bothEffectiveInstantNull_compareById() {
-      UUID id1 = UUID.randomUUID();
-      UUID id2 = UUID.randomUUID();
-      Transaction t1 = new Transaction();
-      Transaction t2 = new Transaction();
-      t1.setTransactionId(id1);
-      t2.setTransactionId(id2);
-      assertEquals(id1.compareTo(id2), t1.compareTo(t2));
-    }
+  @Test
+  void compareTo_bothEffectiveInstantNull_compareById() {
+    UUID id1 = UUID.randomUUID();
+    UUID id2 = UUID.randomUUID();
+    Transaction t1 = new Transaction();
+    Transaction t2 = new Transaction();
+    t1.setTransactionId(id1);
+    t2.setTransactionId(id2);
+    assertEquals(id1.compareTo(id2), t1.compareTo(t2));
+  }
 
-    @Test
-    void compareTo_oneEffectiveInstantNull_returnsCorrectOrder() {
-      Transaction t1 = new Transaction();
-      Transaction t2 = new Transaction();
-      t1.setTransactionId(UUID.randomUUID());
-      t2.setTimestamp(LocalDateTime.now());
-      t2.setTransactionId(UUID.randomUUID());
-      assertTrue(t1.compareTo(t2) < 0);
-      assertTrue(t2.compareTo(t1) > 0);
-    }
+  @Test
+  void compareTo_oneEffectiveInstantNull_returnsCorrectOrder() {
+    Transaction t1 = new Transaction();
+    Transaction t2 = new Transaction();
+    t1.setTransactionId(UUID.randomUUID());
+    t2.setTimestamp(LocalDateTime.now());
+    t2.setTransactionId(UUID.randomUUID());
+    assertTrue(t1.compareTo(t2) < 0);
+    assertTrue(t2.compareTo(t1) > 0);
+  }
 
-    @Test
-    void compareTo_differentTimestamps_ordersByTime() {
-      Transaction t1 = new Transaction();
-      Transaction t2 = new Transaction();  
-      t1.setTimestamp(LocalDateTime.of(2025, 1, 1, 0, 0, 0));  
-      t1.setTransactionId(UUID.randomUUID());  
-      t2.setTimestamp(LocalDateTime.of(2025, 2, 2, 0, 0, 0));  
-      t2.setTransactionId(UUID.randomUUID());
-      assertTrue(t1.compareTo(t2) < 0);
-      assertTrue(t2.compareTo(t1) > 0);
-    }
+  @Test
+  void compareTo_differentTimestamps_ordersByTime() {
+    Transaction t1 = new Transaction();
+    Transaction t2 = new Transaction();  
+    t1.setTimestamp(LocalDateTime.of(2025, 1, 1, 0, 0, 0));  
+    t1.setTransactionId(UUID.randomUUID());  
+    t2.setTimestamp(LocalDateTime.of(2025, 2, 2, 0, 0, 0));  
+    t2.setTransactionId(UUID.randomUUID());
+    assertTrue(t1.compareTo(t2) < 0);
+    assertTrue(t2.compareTo(t1) > 0);
+  }
 
-    @Test
-    void compareTo_sameTimestamp_ordersById() {
-      LocalDateTime now = LocalDateTime.now();
-      UUID id1 = UUID.randomUUID();
-      UUID id2 = UUID.randomUUID();
-      Transaction t1 = new Transaction();
-      t1.setTimestamp(now);
-      t1.setTransactionId(id1);
-      Transaction t2 = new Transaction();
-      t2.setTimestamp(now);
-      t2.setTransactionId(id2);
-      assertEquals(id1.compareTo(id2), t1.compareTo(t2));
-    }
+  @Test
+  void compareTo_sameTimestamp_ordersById() {
+    LocalDateTime now = LocalDateTime.now();
+    UUID id1 = UUID.randomUUID();
+    Transaction t1 = new Transaction();
+    t1.setTimestamp(now);
+    t1.setTransactionId(id1);
+    UUID id2 = UUID.randomUUID();
+    Transaction t2 = new Transaction();
+    t2.setTimestamp(now);
+    t2.setTransactionId(id2);
+    assertEquals(id1.compareTo(id2), t1.compareTo(t2));
+  }
 
-    @Test
-    void compareTo_bothNullIds_returnsZero() {
-      Transaction t1 = new Transaction();
-      Transaction t2 = new Transaction();
-      assertEquals(0, t1.compareTo(t2));
-    }
+  @Test
+  void compareTo_bothNullIds_returnsZero() {
+    Transaction t1 = new Transaction();
+    Transaction t2 = new Transaction();
+    assertEquals(0, t1.compareTo(t2));
+  }
 
 
   // ---------------------------------------------------------------------------
   // equals
   // ---------------------------------------------------------------------------
 
-    @Test
-    void equals_sameObject_returnsTrue() {
-      Transaction t1 = new Transaction();
-      t1.setTransactionId(UUID.randomUUID());
-      assertEquals(t1, t1);
-    }
+  @Test
+  void equals_sameObject_returnsTrue() {
+    Transaction t1 = new Transaction();
+    t1.setTransactionId(UUID.randomUUID());
+    assertEquals(t1, t1);
+  }
 
-    @Test
-    void equals_null_returnsFalse() {
-      Transaction t1 = new Transaction();
-      assertNotEquals(t1, null);
-    }
+  @Test
+  void equals_null_returnsFalse() {
+    Transaction t1 = new Transaction();
+    assertNotEquals(t1, null);
+  }
 
-    @Test
-    void equals_differentClass_returnsFalse() {
-      Transaction t1 = new Transaction();
-      assertNotEquals(t1, 1);
-    }
+  @Test
+  void equals_differentClass_returnsFalse() {
+    Transaction t1 = new Transaction();
+    assertNotEquals(t1, 1);
+  }
 
-    @Test
-    void equals_sameId_returnsTrue() {
-      UUID id = UUID.randomUUID();
-      Transaction t1 = new Transaction();
-      Transaction t2 = new Transaction();
-      t1.setTransactionId(id);
-      t2.setTransactionId(id);
-      assertEquals(t1, t2);
-    }
+  @Test
+  void equals_sameId_returnsTrue() {
+    UUID id = UUID.randomUUID();
+    Transaction t1 = new Transaction();
+    Transaction t2 = new Transaction();
+    t1.setTransactionId(id);
+    t2.setTransactionId(id);
+    assertEquals(t1, t2);
+  }
 
-    @Test
-    void equals_differentIds_returnsFalse() {
-      UUID id1 = UUID.randomUUID();
-      UUID id2 = UUID.randomUUID();
-      Transaction t1 = new Transaction();
-      Transaction t2 = new Transaction();
-      t1.setTransactionId(id1);
-      t2.setTransactionId(id2);
-      assertNotEquals(t1, t2);
-    }
+  @Test
+  void equals_differentIds_returnsFalse() {
+    UUID id1 = UUID.randomUUID();
+    UUID id2 = UUID.randomUUID();
+    Transaction t1 = new Transaction();
+    Transaction t2 = new Transaction();
+    t1.setTransactionId(id1);
+    t2.setTransactionId(id2);
+    assertNotEquals(t1, t2);
+  }
 }

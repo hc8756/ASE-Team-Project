@@ -12,14 +12,17 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.endsWith;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.ase.teamproject.model.Transaction;
 import dev.ase.teamproject.model.User;
 import dev.ase.teamproject.service.MockApiService;
-
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +158,7 @@ public class MockApiServiceTests {
       anyString(), 
       anyString(), 
       anyDouble()))
-      .thenReturn(null);
+        .thenReturn(null);
     User test = service.addUser(user);
     assertNull(test.getUserId());
   }
@@ -215,12 +218,15 @@ public class MockApiServiceTests {
   public void getTransactionsByUser_typical_returnsTransactionList() {
     Transaction t1 = new Transaction(userId, 25.0, "category1", "desc1");
     Transaction t2 = new Transaction(userId, 10.0, "category2", "desc2");
-    List <Transaction> transactions = List.of(t1, t2);
+    List<Transaction> transactions = List.of(t1, t2);
 
-    when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<Transaction>>any(), eq(userId)))
-    .thenReturn(transactions);
+    when(jdbcTemplate.query(
+      anyString(), 
+      ArgumentMatchers.<RowMapper<Transaction>>any(), 
+      eq(userId)))
+        .thenReturn(transactions);
 
-    List<Transaction> test= service.getTransactionsByUser(userId);
+    List<Transaction> test = service.getTransactionsByUser(userId);
     assertEquals(2, test.size());
     assertEquals("category1", test.get(0).getCategory());
   }
@@ -247,6 +253,85 @@ public class MockApiServiceTests {
     assertTrue(exception.getMessage().contains("Failed to get transactions: "));
     assertTrue(exception.getMessage().contains("Error"));
 
+  }
+
+  // ---------------------------------------------------------------------------
+  // addTransaction
+  // ---------------------------------------------------------------------------
+
+  /** Typical valid input. */
+  @Test
+  public void addTransaction_validTransaction_returnsSavedTransaction() {
+    LocalDateTime createdTime = LocalDateTime.of(2025, 10, 23, 12, 0);
+    LocalDate createdDate = LocalDate.of(2025, 10, 23);
+
+    when(jdbcTemplate.queryForObject(
+        anyString(),
+        ArgumentMatchers.<RowMapper<Transaction>>any(),
+        eq(transaction.getUserId()),
+        eq(transaction.getDescription()),
+        eq(transaction.getAmount()),
+        eq(transaction.getCategory())))
+          .thenAnswer(invocation -> {
+            var rs = mock(java.sql.ResultSet.class);
+            when(rs.getObject("transaction_id", UUID.class)).thenReturn(transactionId);
+            when(rs.getTimestamp("created_time")).thenReturn(Timestamp.valueOf(createdTime));
+            when(rs.getDate("created_date")).thenReturn(Date.valueOf(createdDate));
+            var rowMapper = invocation.getArgument(1);
+            return ((org.springframework.jdbc.core.RowMapper<Transaction>) rowMapper).mapRow(rs, 0);
+          });
+
+    Transaction result = service.addTransaction(transaction);
+
+    assertNotNull(result);
+    assertEquals(transaction.getUserId(), result.getUserId());
+    assertEquals(transaction.getDescription(), result.getDescription());
+    assertEquals(transaction.getAmount(), result.getAmount());
+    assertEquals(transaction.getCategory(), result.getCategory());
+    assertEquals(transaction.getTransactionId(), result.getTransactionId());
+    assertEquals(createdTime, result.getTimestamp());
+    assertEquals(createdDate, result.getDate());
+  }
+
+  /** Atypical valid input. */
+  @Test
+  public void addTransaction_atypical_returnsTransactionEvenIfNoRowsAffected() {
+    when(jdbcTemplate.queryForObject(
+      anyString(),
+      ArgumentMatchers.<RowMapper<Transaction>>any(),
+      any(),
+      any(),
+      any(),
+      any()))
+        .thenReturn(null);
+
+    Transaction t = new Transaction(userId, 75.0, "transport", "subway");
+    Transaction result = service.addTransaction(t);
+    assertNotNull(result);
+    assertEquals(75.0, result.getAmount());
+    assertNull(result.getTransactionId());
+    assertNull(result.getTimestamp());
+    assertNull(result.getDate());
+  }
+
+  /** Invalid input. */
+  @Test
+  public void addTransaction_failedTransaction_throwsRuntimeException() {
+    when(jdbcTemplate.queryForObject(
+        anyString(),
+        ArgumentMatchers.<RowMapper<Transaction>>any(),
+        eq(transaction.getUserId()),
+        eq(transaction.getDescription()),
+        eq(transaction.getAmount()),
+        eq(transaction.getCategory())
+    )).thenThrow(new RuntimeException("DB insert error"));
+  
+    RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+      service.addTransaction(transaction);
+    });
+  
+    assertTrue(exception.getMessage().contains("Failed to create transaction"));
+    assertTrue(exception.getCause().getMessage().contains("DB insert error"));
   }
 
   // ---------------------------------------------------------------------------
@@ -644,13 +729,13 @@ public class MockApiServiceTests {
       anyString(),
       ArgumentMatchers.<RowMapper<User>>any(),
       eq(userId)))
-      .thenReturn(user);
+        .thenReturn(user);
   
     when(jdbcTemplate.query(
       anyString(),
       ArgumentMatchers.<RowMapper<Transaction>>any(),
       eq(userId)))
-      .thenReturn(transactions);
+        .thenReturn(transactions);
     
     Map<String, Object> test = service.getBudgetReport(userId);
     assertEquals(true, test.get("isOverBudget"));
@@ -759,18 +844,113 @@ public class MockApiServiceTests {
   // ---------------------------------------------------------------------------
 
   /** Typical valid input. */
+  @Test
+  public void weeklySummary_returnsTransactions() {
+    LocalDate oneWeekAgo = LocalDate.now().minusDays(7);
 
+    List<Transaction> expected = List.of(
+      new Transaction(userId, 100.0, "c1", "d1"),
+      new Transaction(userId, 50.0, "c2", "d2")
+    );
+
+    when(jdbcTemplate.query(
+      anyString(), 
+      ArgumentMatchers.<RowMapper<Transaction>>any(), 
+      eq(userId), 
+      eq(oneWeekAgo)))
+        .thenReturn(expected);
+
+    List<Transaction> result = service.weeklySummary(userId);
+
+    assertEquals(expected, result);
+  }
+
+  /** Atypical valid input. */
+  @Test
+  public void weeklySummary_atypical_noTransactions_returnsEmptyList() {
+    LocalDate oneWeekAgo = LocalDate.now().minusDays(7);
+
+    when(jdbcTemplate.query(
+      anyString(), 
+      ArgumentMatchers.<RowMapper<Transaction>>any(), 
+      eq(userId), 
+      eq(oneWeekAgo)))
+        .thenReturn(Collections.emptyList());
+
+    List<Transaction> result = service.weeklySummary(userId);
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
+
+  /** Invalid input. */
+  @Test
+  public void weeklySummary_invalidInput_throwsException() {
+    UUID userId = null;
+    
+    when(jdbcTemplate.query(
+      anyString(), 
+      ArgumentMatchers.<RowMapper<Transaction>>any(), 
+      eq(userId), 
+      any()))
+        .thenThrow(new IllegalArgumentException("DB Error"));
+
+    assertThrows(IllegalArgumentException.class, () -> service.weeklySummary(userId));
+  }
 
   // ---------------------------------------------------------------------------
   // totalLast7Days
   // ---------------------------------------------------------------------------
 
   /** Typical valid input. */
+  @Test
+  public void totalLast7Days_returnsSum() {
+    LocalDate oneWeekAgo = LocalDate.now().minusDays(7);
 
-  // ---------------------------------------------------------------------------
-  // totalLast7Days
-  // ---------------------------------------------------------------------------
+    when(jdbcTemplate.queryForObject(
+      anyString(),
+      eq(Double.class),
+      eq(userId),
+      eq(oneWeekAgo)
+    )).thenReturn(150.0);
 
-  /** Typical valid input. */
+    double result = service.totalLast7Days(userId);
+
+    assertEquals(150.0, result);
+  }
+
+  /** Atypical valid input. */
+  @Test
+  public void totalLast7Days_noTransactions_returnsZero() {
+    LocalDate oneWeekAgo = LocalDate.now().minusDays(7);
+
+    when(jdbcTemplate.queryForObject(
+      anyString(),
+      eq(Double.class),
+      eq(userId),
+      eq(oneWeekAgo)
+    )).thenReturn(0.0);
+
+    double result = service.totalLast7Days(userId);
+
+    assertEquals(0.0, result);
+  }
+
+  /** Invalid input. */
+  @Test
+  public void totalLast7Days_invalidInput_returnsZero() {
+    LocalDate oneWeekAgo = LocalDate.now().minusDays(7);
+
+    when(jdbcTemplate.queryForObject(
+      anyString(),
+      eq(Double.class),
+      eq(userId),
+      eq(oneWeekAgo)
+    )).thenThrow(new RuntimeException("DB Error"));
+
+    double result = service.totalLast7Days(userId);
+
+    assertEquals(0.0, result);
+  }
 
 }
