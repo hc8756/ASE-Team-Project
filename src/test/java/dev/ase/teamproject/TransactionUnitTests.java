@@ -1,11 +1,13 @@
+package dev.ase.teamproject;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import dev.ase.teamproject.model.Transaction;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import model.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
