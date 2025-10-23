@@ -21,7 +21,6 @@ It is built with Spring Boot (Java), uses a Cloud SQL database, and exposes REST
 - Google Cloud SQL instance (configured for this project)
 
 2. Database setup
-
 Make sure the SQL instance running our database is active before starting the application.
 - Go to [Google Cloud Console](https://console.cloud.google.com/welcome/new?authuser=1&project=ase-group-project-474618)
 - Log in/create account with your Columbia email
@@ -87,6 +86,10 @@ To run all unit tests:
 mvn test
 ```
 
+### Endpoint Testing
+
+Please see `api-testing.md` in the root of this repository for detailed instructions on running tests with `curl`.
+
 ### Test Coverage
 - Tool: JaCoCo
 
@@ -118,13 +121,11 @@ mvn checkstyle:checkstyle
 
 The report is accessible at `target/site/checkstyle.html`. A copy of a clean report `checkstyle.html` is also included in the root of this repository.
 
-## Documentation
+## Documentation and Organization
 
 All source files are documented using Javadoc and inline comments explaining implementation details where relevant.
 
 Both JaCoCo and Checkstyle reports are included in the root directory of the repository.
-
-No AI tools were used in writing or debugging this code.
 
 Official documentation and reference materials used throughout the project include:
 - **Java SE 17:** https://docs.oracle.com/en/java/javase/17/docs/api/
@@ -136,6 +137,8 @@ Official documentation and reference materials used throughout the project inclu
 - **Maven Checkstyle Plugin:** https://maven.apache.org/plugins/maven-checkstyle-plugin/
 - **Google Java Style Guide (Checkstyle Rules):** https://google.github.io/styleguide/javaguide.html
 - **Spring Testing (MockMvc):** https://docs.spring.io/spring-framework/docs/current/reference/html/testing.html#spring-mvc-test-framework
+
+ChatGPT assisted in referencing documentation, fixing style warnings (long lines, import order), and minor debugging.
 
 We used **GitHub Issues** to track progress and assign tasks.
 

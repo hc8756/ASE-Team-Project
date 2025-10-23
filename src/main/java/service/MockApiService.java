@@ -1,13 +1,13 @@
-package dev.ase.teamproject.service;
+package service;
 
-import dev.ase.teamproject.model.Transaction;
-import dev.ase.teamproject.model.User;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import model.Transaction;
+import model.User;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
