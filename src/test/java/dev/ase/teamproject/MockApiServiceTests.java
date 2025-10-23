@@ -227,8 +227,8 @@ public class MockApiServiceTests {
       anyString(),
       ArgumentMatchers.<RowMapper<Transaction>>any()))
         .thenReturn(transactions);
-      List<Transaction> test = service.viewAllTransactions();
-      assertEquals(2, test.size());
+    List<Transaction> test = service.viewAllTransactions();
+    assertEquals(2, test.size());
   }
 
   @Test
@@ -238,8 +238,8 @@ public class MockApiServiceTests {
       anyString(),
       ArgumentMatchers.<RowMapper<Transaction>>any()))
         .thenReturn(transactions);
-      List<Transaction> test = service.viewAllTransactions();
-      assertEquals(0, test.size());
+    List<Transaction> test = service.viewAllTransactions();
+    assertEquals(0, test.size());
   }
 
 
