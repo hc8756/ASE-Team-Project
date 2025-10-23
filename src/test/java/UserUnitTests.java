@@ -1,11 +1,9 @@
-package dev.ase.teamproject;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import dev.ase.teamproject.model.User;
 import java.util.UUID;
+import model.User;
 import org.junit.jupiter.api.Test;
 
 /**
