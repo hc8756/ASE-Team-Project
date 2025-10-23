@@ -1,13 +1,14 @@
-package controller;
+package dev.ase.teamproject.controller;
 
+import dev.ase.teamproject.model.Transaction;
+import dev.ase.teamproject.model.User;
+import dev.ase.teamproject.service.MockApiService;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
-import model.Transaction;
-import model.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import service.MockApiService;
 
 /**
  * This class contains all the API routes for the application.
