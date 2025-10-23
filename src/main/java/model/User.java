@@ -1,4 +1,4 @@
-package dev.ase.teamproject.model;
+package model;
 
 import java.util.UUID;
 
