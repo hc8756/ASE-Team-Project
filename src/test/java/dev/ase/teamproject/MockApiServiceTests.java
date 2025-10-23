@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -68,6 +69,10 @@ public class MockApiServiceTests {
     transactionId = transaction.getTransactionId();
     MockitoAnnotations.openMocks(this);
   }
+
+  // ---------------------------------------------------------------------------
+  // viewAllUsers
+  // ---------------------------------------------------------------------------
 
   @Test
   public void viewAllUsers_twoUsersExist_returnsListOfTwo() {
@@ -208,6 +213,35 @@ public class MockApiServiceTests {
       service.deleteUser(userId);
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // viewAllTransactions
+  // ---------------------------------------------------------------------------
+
+  @Test
+  public void viewAllTransactions_returnsTransactions() {
+    Transaction t1 = new Transaction(userId, 25.0, "category1", "desc1");
+    Transaction t2 = new Transaction(userId, 10.0, "category2", "desc2");
+    List<Transaction> transactions = List.of(t1, t2);
+    when(jdbcTemplate.query(
+      anyString(),
+      ArgumentMatchers.<RowMapper<Transaction>>any()))
+        .thenReturn(transactions);
+      List<Transaction> test = service.viewAllTransactions();
+      assertEquals(2, test.size());
+  }
+
+  @Test
+  public void viewAllTransactions_noTransactions_returnsEmptyList() {
+    List<Transaction> transactions = List.of();
+    when(jdbcTemplate.query(
+      anyString(),
+      ArgumentMatchers.<RowMapper<Transaction>>any()))
+        .thenReturn(transactions);
+      List<Transaction> test = service.viewAllTransactions();
+      assertEquals(0, test.size());
+  }
+
 
   // ---------------------------------------------------------------------------
   // getTransactionsByUser
