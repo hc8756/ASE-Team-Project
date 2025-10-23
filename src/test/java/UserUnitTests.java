@@ -8,6 +8,11 @@ import org.junit.jupiter.api.Test;
 
 /**
  * This class contains the unit tests for the User class.
+ * <p>
+ * Since this is a simple data class (POJO) with only trivial getters,
+ * setters, and constructors, the tests focus on verifying that all
+ * field assignments and retrievals work as expected.
+ * </p>
  */
 class UserUnitTests {
 
