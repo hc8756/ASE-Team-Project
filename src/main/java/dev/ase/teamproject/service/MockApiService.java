@@ -122,14 +122,20 @@ public class MockApiService {
    */
   public Transaction addTransaction(Transaction transaction) {
     try {
-      String sql = "INSERT INTO transactions (user_id, description, amount, category)" 
-          + "VALUES (?, ?, ?, ?::transaction_category)";
-      jdbcTemplate.update(sql, 
+      String sql = "INSERT INTO transactions (user_id, description, amount, category) " 
+          + "VALUES (?, ?, ?, ?::transaction_category) "
+          + "RETURNING transaction_id, created_time, created_date";
+      Transaction savedTransaction = jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+        transaction.setTransactionId(rs.getObject("transaction_id", UUID.class));
+        transaction.setTimestamp(rs.getTimestamp("created_time").toLocalDateTime());
+        transaction.setDate(rs.getDate("created_date").toLocalDate());
+        return transaction; 
+      }, 
           transaction.getUserId(),
           transaction.getDescription(),
           transaction.getAmount(),
           transaction.getCategory());
-      return transaction;
+      return savedTransaction;
     } catch (Exception e) {
       throw new RuntimeException("Failed to create transaction: " + e.getMessage(), e);
     }
