@@ -7,14 +7,12 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for the simple User POJO.
- *
- * Rubric mapping:
- * - For each “unit” (constructor and getters/setters), we include cases that represent
- *   typical values and edge-ish cases (e.g., default/zero), and we point out where an
- *   “invalid” concept would normally live (this class itself has no validation logic).
- * - Tests are grouped in one class for this model (related tests grouped together).
- * - Tests run via JUnit/Maven (automated test runner).
+ * This class contains the unit tests for the User class.
+ * <p>
+ * Since this is a simple data class (POJO) with only trivial getters,
+ * setters, and constructors, the tests focus on verifying that all
+ * field assignments and retrievals work as expected.
+ * </p>
  */
 class UserUnitTests {
 
