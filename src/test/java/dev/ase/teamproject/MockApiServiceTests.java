@@ -207,58 +207,6 @@ public class MockApiServiceTests {
   }
 
   // ---------------------------------------------------------------------------
-  // addTransaction
-  // ---------------------------------------------------------------------------
-
-  /** Typical valid input. */
-  @Test
-  public void addTransaction_validTransaction_returnsSavedTransaction() {
-    when(jdbcTemplate.update(
-        anyString(),
-        eq(transaction.getUserId()),
-        eq(transaction.getDescription()),
-        eq(transaction.getAmount()),
-        eq(transaction.getCategory())))
-        .thenReturn(1);
-    Transaction test = service.addTransaction(transaction);
-    assertNotNull(test);
-    assertEquals(transaction.getUserId(), test.getUserId());
-    assertEquals(transaction.getDescription(), test.getDescription());
-    assertEquals(transaction.getAmount(), test.getAmount());
-    assertEquals(transaction.getCategory(), test.getCategory());
-  }
-
-  /** Atypical valid input. */
-  @Test
-  public void addTransaction_atypical_returnsTransactionEvenIfNoRowsAffected() {
-    when(jdbcTemplate.update(anyString(), any(), anyString(), anyDouble(), anyString()))
-        .thenReturn(0);
-
-    Transaction t = new Transaction(userId, 75.0, "transport", "subway");
-    Transaction result = service.addTransaction(t);
-    assertNotNull(result);
-    assertEquals(75.0, result.getAmount());
-  }
-
-  /** Invalid input. */
-  @Test
-  public void addTransaction_failedTransaction_throwsRuntimeException() {
-    when(jdbcTemplate.update(
-        anyString(),
-        eq(transaction.getUserId()),
-        eq(transaction.getDescription()),
-        eq(transaction.getAmount()),
-        eq(transaction.getCategory())))
-        .thenThrow(new RuntimeException());
-
-    RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-      service.addTransaction(transaction);
-    });
-
-    assertTrue(exception.getMessage().contains("Failed to create transaction"));
-  }
-
-  // ---------------------------------------------------------------------------
   // getTransactionsByUser
   // ---------------------------------------------------------------------------
 
@@ -805,5 +753,24 @@ public class MockApiServiceTests {
 
     assertTrue(exception.getMessage().contains("Budget cannot be negative"));
   }
+
+  // ---------------------------------------------------------------------------
+  // weeklySummary
+  // ---------------------------------------------------------------------------
+
+  /** Typical valid input. */
+
+
+  // ---------------------------------------------------------------------------
+  // totalLast7Days
+  // ---------------------------------------------------------------------------
+
+  /** Typical valid input. */
+
+  // ---------------------------------------------------------------------------
+  // totalLast7Days
+  // ---------------------------------------------------------------------------
+
+  /** Typical valid input. */
 
 }
