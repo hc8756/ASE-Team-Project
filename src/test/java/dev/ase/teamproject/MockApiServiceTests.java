@@ -210,6 +210,92 @@ public class MockApiServiceTests {
   }
 
   // ---------------------------------------------------------------------------
+  // viewAllTransactions
+  // ---------------------------------------------------------------------------
+
+  /** Typical valid input. */
+  @Test
+  public void viewAllTransactions_typical_returnsTransactionList() {
+    Transaction t1 = new Transaction(userId, 50.0, "FOOD", "Lunch");
+    Transaction t2 = new Transaction(userId, 120.0, "SHOPPING", "Shoes");
+    List<Transaction> mockTransactions = List.of(t1, t2);
+
+    when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<Transaction>>any()))
+        .thenReturn(mockTransactions);
+
+    List<Transaction> result = service.viewAllTransactions();
+
+    assertNotNull(result);
+    assertEquals(2, result.size());
+    assertEquals("FOOD", result.get(0).getCategory());
+  }
+
+  /** Atypical valid input. */
+  @Test
+  public void viewAllTransactions_noTransactions_returnsEmptyList() {
+    when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<Transaction>>any()))
+        .thenReturn(List.of());
+
+    List<Transaction> result = service.viewAllTransactions();
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
+
+  /** Invalid input. */
+  @Test
+  public void viewAllTransactions_queryFails_throwsRuntimeException() {
+    when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<Transaction>>any()))
+        .thenThrow(new RuntimeException("Error"));
+
+    assertThrows(RuntimeException.class, () -> {
+      service.viewAllTransactions();
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // getTransaction
+  // ---------------------------------------------------------------------------
+
+  /** Typical valid input. */
+  @Test
+  public void getTransaction_transactionExists_returnsOptionalWithTransaction() {
+    Transaction transaction = new Transaction(userId, 45.0, "FOOD", "Dinner");
+    when(jdbcTemplate.queryForObject(anyString(), ArgumentMatchers
+        .<RowMapper<Transaction>>any(), eq(transactionId)))
+        .thenReturn(transaction);
+
+    Optional<Transaction> result = service.getTransaction(transactionId);
+
+    assertTrue(result.isPresent());
+    assertEquals("FOOD", result.get().getCategory());
+    assertEquals(45.0, result.get().getAmount());
+  }
+
+  /** Atypical valid input. */
+  @Test
+  public void getTransaction_transactionNotFound_returnsEmptyOptional() {
+    when(jdbcTemplate.queryForObject(anyString(), ArgumentMatchers
+        .<RowMapper<Transaction>>any(), eq(transactionId)))
+        .thenReturn(null);
+
+    Optional<Transaction> result = service.getTransaction(transactionId);
+    assertFalse(result.isPresent());
+  }
+
+  /** Invalid input. */
+  @Test
+  public void getTransaction_queryFails_returnsEmptyOptional() {
+    when(jdbcTemplate.queryForObject(anyString(), ArgumentMatchers
+        .<RowMapper<Transaction>>any(), eq(transactionId)))
+        .thenThrow(new RuntimeException("Error"));
+
+    Optional<Transaction> result = service.getTransaction(transactionId);
+    assertFalse(result.isPresent());
+  }
+
+
+  // ---------------------------------------------------------------------------
   // getTransactionsByUser
   // ---------------------------------------------------------------------------
 
@@ -790,7 +876,7 @@ public class MockApiServiceTests {
     verify(jdbcTemplate).update("UPDATE users SET budget = ? WHERE user_id = ?", 20.0, userId);
   }
 
-  /** Invalid inputs. */
+  /** Invalid input. */
 
   @Test
   public void setBudgets_userNotFound_throwsIllegalArgumentException() {

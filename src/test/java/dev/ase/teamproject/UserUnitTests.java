@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import dev.ase.teamproject.model.User;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -16,50 +17,53 @@ import org.junit.jupiter.api.Test;
  * field assignments and retrievals work as expected.
  * </p>
  */
-class UserUnitTests {
+public class UserUnitTests {
+
+  private User user;
+  private UUID testId;
+
+  @BeforeEach
+  public void setUp() {
+    testId = UUID.randomUUID();
+    user = new User();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Constructors
+  // ---------------------------------------------------------------------------
 
   @Test
-  public void constructor_defaultValues_allFieldsNullOrZero() {
-    User u = new User();
-    assertNull(u.getUserId());
-    assertNull(u.getUsername());
-    assertNull(u.getEmail());
-    assertEquals(0.0, u.getBudget());
+  public void constructor_defaultConstructor_initializesFieldsToNullOrZero() {
+    assertNull(user.getUserId());
+    assertNull(user.getUsername());
+    assertNull(user.getEmail());
+    assertEquals(0.0, user.getBudget());
   }
 
   @Test
-  public void constructor_withValidParameters_setsProvidedFields() {
-    User u = new User("lisa", "lisa@x.com", 200.0);
-    assertEquals("lisa", u.getUsername());
-    assertEquals("lisa@x.com", u.getEmail());
-    assertEquals(200.0, u.getBudget());
-    assertNull(u.getUserId()); // DB assigns later
+  public void constructor_parameterizedConstructor_setsProvidedValues() {
+    User u = new User("Alice", "alice@example.com", 100.0);
+    assertEquals("Alice", u.getUsername());
+    assertEquals("alice@example.com", u.getEmail());
+    assertEquals(100.0, u.getBudget());
+    assertNull(u.getUserId()); // DB Assigns Later
+  }
+
+  // ---------------------------------------------------------------------------
+  // setUserId / getUserId
+  // ---------------------------------------------------------------------------
+
+  @Test
+  public void setUserId_withValidUuid_storesUuid() {
+    user.setUserId(testId);
+    assertEquals(testId, user.getUserId());
   }
 
   @Test
-  public void gettersAndSetters_allFieldsSet_explicitValuesReturned() {
-    User u = new User();
-
-    UUID id = UUID.randomUUID();
-    u.setUserId(id);
-    u.setUsername("neo");
-    u.setEmail("n@x.com");
-    u.setBudget(500.5);
-
-    assertEquals(id, u.getUserId());
-    assertEquals("neo", u.getUsername());
-    assertEquals("n@x.com", u.getEmail());
-    assertEquals(500.5, u.getBudget());
-  }
-
-  @Test
-  public void setters_existingFieldsUpdated_newValuesReflected() {
-    User u = new User("alice", "a@b.com", 100);
-    u.setBudget(999.99);
-    u.setEmail("new@b.com");
-
-    assertEquals(999.99, u.getBudget());
-    assertEquals("new@b.com", u.getEmail());
+  public void getUserId_afterSettingUuid_returnsSameUuid() {
+    user.setUserId(testId);
+    UUID result = user.getUserId();
+    assertEquals(testId, result);
   }
 
   @Test
@@ -77,9 +81,54 @@ class UserUnitTests {
     assertEquals(id2, u2.getUserId());
   }
 
-  // Note on "invalid input":
-  // This model intentionally has no validation logic (e.g., rejects null/empty username),
-  // so we cannot meaningfully create a failing “invalid” scenario here. If validation is
-  // added later (e.g., non-null username/email, non-negative budget), add tests that
-  // assert thrown exceptions or rejected states for those invalid inputs.
+  // ---------------------------------------------------------------------------
+  // setUsername / getUsername
+  // ---------------------------------------------------------------------------
+
+  @Test
+  public void setUsername_withValidString_storesUsername() {
+    user.setUsername("Bob");
+    assertEquals("Bob", user.getUsername());
+  }
+
+  @Test
+  void getUsername_afterSettingUsername_returnsSameValue() {
+    user.setUsername("Bob");
+    String result = user.getUsername();
+    assertEquals("Bob", result);
+  }
+
+  // ---------------------------------------------------------------------------
+  // setEmail / getEmail
+  // ---------------------------------------------------------------------------
+
+  @Test
+  public void setEmail_withValidString_storesEmail() {
+    user.setEmail("bob@example.com");
+    assertEquals("bob@example.com", user.getEmail());
+  }
+
+  @Test
+  public void getEmail_afterSettingEmail_returnsSameValue() {
+    user.setEmail("bob@example.com");
+    String result = user.getEmail();
+    assertEquals("bob@example.com", result);
+  }
+
+  // ---------------------------------------------------------------------------
+  // setBudget / getBudget
+  // ---------------------------------------------------------------------------
+
+  @Test
+  public void setBudget_withPositiveValue_storesBudget() {
+    user.setBudget(250.75);
+    assertEquals(250.75, user.getBudget());
+  }
+
+  @Test
+  public void getBudget_afterSettingBudget_returnsSameValue() {
+    user.setBudget(250.75);
+    double result = user.getBudget();
+    assertEquals(250.75, result);
+  }
 }

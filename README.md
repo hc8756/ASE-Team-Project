@@ -90,6 +90,8 @@ mvn test
 
 Please see `api-testing.md` in the root of this repository for detailed instructions on running tests with `curl`.
 
+Calls were logged for endpoints. Logging information appears in the terminal that is running the application.
+
 ### Test Coverage
 - Tool: JaCoCo
 
@@ -100,7 +102,7 @@ mvn jacoco:report
 
 The report is accessible at `target/site/jacoco/index.html`.
 
-For the first iteration, we acheived 56% branch coverage. A copy of the report `index.html` is also included in the root of this repository.
+For the first iteration, we acheived 85% branch coverage. A copy of the report `index.html` is also included in the root of this repository.
 
 
 ## Style Checker
