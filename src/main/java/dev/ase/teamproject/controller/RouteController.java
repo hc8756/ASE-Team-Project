@@ -122,7 +122,8 @@ public class RouteController {
   }
 
   /**
-   * Creates a new user through an HTML form submission.
+   * Creates a new user from a create-form endpoint submission.
+   * Shows results via HTML form.
    *
    * @param username A {@code String} containing the user's name.
    * @param email    A {@code String} containing the user's email.
@@ -163,18 +164,18 @@ public class RouteController {
    * Updates an existing user with JSON data.
    *
    * @param userId A {@code UUID} representing the user's ID.
-   * @param user   A {@code User} object containing updated data.
+   * @param userUpdates   A {@code User} object containing updated data.
    *
    * @return A {@code ResponseEntity} with the updated {@code User} and an
    *         HTTP 200 response if found
    * @throws NoSuchElementException if the user does not exist.
    */
   @PutMapping(value = "/users/{userId}",
-              consumes = MediaType.APPLICATION_JSON_VALUE,
-              produces = MediaType.APPLICATION_JSON_VALUE)
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<User> updateUserJson(
-          @PathVariable UUID userId,
-          @RequestBody User user) {
+        @PathVariable UUID userId,
+        @RequestBody User userUpdates) {
 
     LOGGER.info("PUT /users/" + userId + " called - Updating user via JSON.");
     Optional<User> existingUser = mockApiService.getUser(userId);
@@ -183,17 +184,41 @@ public class RouteController {
       throw new NoSuchElementException("User " + userId + " not found");
     }
     
-    // For now, delete and recreate since we don't have update in service
+    User existing = existingUser.get();
+    User mergedUser = new User();
+    mergedUser.setUserId(userId);  // Set original id
+    
+    // Merge username
+    if (userUpdates.getUsername() != null && !userUpdates.getUsername().isEmpty()) {
+      mergedUser.setUsername(userUpdates.getUsername());
+    } else {
+      mergedUser.setUsername(existing.getUsername());
+    }
+    
+    // Merge email
+    if (userUpdates.getEmail() != null && !userUpdates.getEmail().isEmpty()) {
+      mergedUser.setEmail(userUpdates.getEmail());
+    } else {
+      mergedUser.setEmail(existing.getEmail());
+    }
+    
+    // Merge budget
+    if (userUpdates.getBudget() != 0.0) {
+      mergedUser.setBudget(userUpdates.getBudget());
+    } else {
+      mergedUser.setBudget(existing.getBudget());
+    }
+    
+    // Delete and recreate with merged data and preserved ID
     mockApiService.deleteUser(userId);
-    User saved = mockApiService.addUser(user);
-    saved.setUserId(userId); // Keep the same user ID
+    User saved = mockApiService.addUser(mergedUser);
 
     LOGGER.info("User updated successfully. ID: " + userId);
     return ResponseEntity.ok(saved);
   }
-
   /**
-   * Updates an existing user using an HTML form submission.
+   * Updates an existing user from edit-form endpoint submission.
+   * Shows results via HTML form.
    *
    * @param userId   A {@code UUID} representing the user’s ID.
    * @param username A {@code String} containing the updated username.
@@ -222,13 +247,13 @@ public class RouteController {
     }
     
     User user = new User();
+    user.setUserId(userId);
     user.setUsername(username);
     user.setEmail(email);
     user.setBudget(budget);
     
     mockApiService.deleteUser(userId);
     User saved = mockApiService.addUser(user);
-    saved.setUserId(userId);
 
     LOGGER.info("User updated successfully via form. ID: " + userId);
     

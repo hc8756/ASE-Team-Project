@@ -67,11 +67,21 @@ public class MockApiService {
    * @return The created {@code User} object with a generated {@code UUID}.
    */
   public User addUser(User user) {
-    String sql = "INSERT INTO users (username, email, budget) VALUES (?, ?, ?) RETURNING user_id";
-    UUID generatedUserId = jdbcTemplate.queryForObject(sql, UUID.class, 
-        user.getUsername(), user.getEmail(), user.getBudget());
-    user.setUserId(generatedUserId);
-    return user;
+    if (user.getUserId() != null) {
+      String sql = "INSERT INTO users (user_id, username, email, budget) VALUES (?, ?, ?, ?)";
+      jdbcTemplate.update(sql, 
+          user.getUserId(),  // Use the provided UUID
+          user.getUsername(), 
+          user.getEmail(), 
+          user.getBudget());
+      return user;  // Return as-is
+    } else {
+      String sql = "INSERT INTO users (username, email, budget) VALUES (?, ?, ?) RETURNING user_id";
+      UUID generatedUserId = jdbcTemplate.queryForObject(sql, UUID.class, 
+          user.getUsername(), user.getEmail(), user.getBudget());
+      user.setUserId(generatedUserId);
+      return user;
+    }
   }
 
   /**
@@ -184,8 +194,8 @@ public class MockApiService {
     if (updates.containsKey("category")) {
       transaction.setCategory((String) updates.get("category"));
     }
-    String sql = "UPDATE transactions SET description = ?," 
-        + "amount = ?, category = ? WHERE transaction_id = ?";
+    String sql = "UPDATE transactions SET description = ?, amount = ?, " 
+        + "category = ?::transaction_category WHERE transaction_id = ?";
     int rowsAffected = jdbcTemplate.update(sql,
         transaction.getDescription(),
         transaction.getAmount(),
