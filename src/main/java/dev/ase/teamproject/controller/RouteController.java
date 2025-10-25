@@ -122,7 +122,8 @@ public class RouteController {
   }
 
   /**
-   * Creates a new user through an HTML form submission.
+   * Creates a new user from a create-form endpoint submission.
+   * Shows results via HTML form.
    *
    * @param username A {@code String} containing the user's name.
    * @param email    A {@code String} containing the user's email.
@@ -193,7 +194,8 @@ public class RouteController {
   }
 
   /**
-   * Updates an existing user using an HTML form submission.
+   * Updates an existing user from edit-form endpoint submission.
+   * Shows results via HTML form.
    *
    * @param userId   A {@code UUID} representing the user’s ID.
    * @param username A {@code String} containing the updated username.

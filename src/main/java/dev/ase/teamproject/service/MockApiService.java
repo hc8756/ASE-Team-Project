@@ -184,8 +184,7 @@ public class MockApiService {
     if (updates.containsKey("category")) {
       transaction.setCategory((String) updates.get("category"));
     }
-    String sql = "UPDATE transactions SET description = ?," 
-        + "amount = ?, category = ? WHERE transaction_id = ?";
+    String sql = "UPDATE transactions SET description = ?, amount = ?, category = ?::transaction_category WHERE transaction_id = ?";
     int rowsAffected = jdbcTemplate.update(sql,
         transaction.getDescription(),
         transaction.getAmount(),
