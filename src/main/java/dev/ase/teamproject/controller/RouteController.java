@@ -31,7 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
     "PMD.CyclomaticComplexity", // Complexity due to many routes 
     "PMD.TooManyMethods", // Many endpoints in one controller
     "PMD.OnlyOneReturn", // Multiple return statements for clarity
-    "PMD.AvoidCatchingGenericException" // Catching RuntimeException for logging
+    "PMD.AvoidCatchingGenericException", // Catching RuntimeException for logging
+    "PMD.CommentSize" // Comments enhance understanding
 })
 
 public class RouteController {
@@ -39,49 +40,49 @@ public class RouteController {
   /** Class logger. */
   private static final Logger LOGGER = Logger.getLogger(RouteController.class.getName());
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String HTML_OPEN = "<html><body>";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String HTML_CLOSE = "</body></html>";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String P_OPEN = "<p>";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String P_CLOSE = "</p>";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String H2_OPEN = "<h2>";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String H2_CLOSE = "</h2>";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String FMT_2F = "%.2f";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String USER_NF_PREFIX = "User ";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String TX_NF_PREFIX = "Transaction ";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String NF_SUFFIX = " not found";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String NF_FOR_USER = " not found for user ";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String FORM_CLOSE = "</form>";
 
-  /** Common HTML literal */
+  /** Common HTML literal. */
   private static final String REQUIRED = " required><br><br>";
 
-  /** Common string literal */
+  /** Common string literal. */
   private static final String GET_USERS = "GET /users/";
 
-  /** Common string literal */
+  /** Common string literal. */
   private static final String POST_USERS = "POST /users/";
 
   /** Service layer. */
@@ -89,6 +90,7 @@ public class RouteController {
 
   /**
    * Constructs the controller.
+   *
    * @param mockApiService service dependency
    */
   public RouteController(final MockApiService mockApiService) {
@@ -97,7 +99,7 @@ public class RouteController {
 
   /**
    * Home page listing all users.
-   * @return HTML page
+   *
    */
   @GetMapping({"/", "/index"})
   public ResponseEntity<String> index() {
@@ -138,6 +140,7 @@ public class RouteController {
 
   /**
    * Returns all users.
+   *
    * @return list of users
    */
   @GetMapping("/users")
@@ -150,6 +153,7 @@ public class RouteController {
 
   /**
    * Returns details of a user.
+   *
    * @param userId user id
    * @return user
    */
@@ -175,6 +179,7 @@ public class RouteController {
 
   /**
    * Creates a user via JSON.
+   *
    * @param user user payload
    * @return created user
    */
@@ -192,6 +197,7 @@ public class RouteController {
 
   /**
    * Creates a user via form; returns HTML.
+   *
    * @param username username
    * @param email email
    * @param budget budget
@@ -233,14 +239,15 @@ public class RouteController {
 
   /**
    * Updates a user via JSON.
+   *
    * @param userId id
    * @param userUpdates updates
    * @return updated user
    */
   @PutMapping(
-    value = "/users/{userId}",
-    consumes = MediaType.APPLICATION_JSON_VALUE,
-    produces = MediaType.APPLICATION_JSON_VALUE)
+      value = "/users/{userId}",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<User> updateUserJson(
       @PathVariable final UUID userId,
       @RequestBody final User userUpdates) {
@@ -284,6 +291,7 @@ public class RouteController {
 
   /**
    * Updates a user via form; returns HTML.
+   *
    * @param userId id
    * @param username username
    * @param email email
@@ -336,6 +344,7 @@ public class RouteController {
 
   /**
    * Shows user create form.
+   *
    * @return HTML form
    */
   @GetMapping(value = "/users/create-form", produces = MediaType.TEXT_HTML_VALUE)
@@ -356,6 +365,7 @@ public class RouteController {
 
   /**
    * Shows user edit form.
+   *
    * @param userId id
    * @return HTML form
    */
@@ -392,6 +402,7 @@ public class RouteController {
 
   /**
    * Deletes a user by ID via JSON.
+   *
    * @param userId id
    * @return deletion result
    */
@@ -415,6 +426,7 @@ public class RouteController {
 
   /**
    * Deletes a user via GET (testing).
+   *
    * @param userId id
    * @return plain text result
    */
@@ -442,6 +454,7 @@ public class RouteController {
 
   /**
    * Lists transactions for a user.
+   *
    * @param userId id
    * @return list or error
    */
@@ -474,6 +487,7 @@ public class RouteController {
 
   /**
    * Gets a transaction for a user.
+   *
    * @param userId user id
    * @param transactionId transaction id
    * @return transaction
@@ -502,6 +516,7 @@ public class RouteController {
 
   /**
    * Creates a transaction via JSON.
+   *
    * @param userId user id
    * @param transaction transaction
    * @return created transaction
@@ -537,6 +552,7 @@ public class RouteController {
 
   /**
    * Creates a transaction via form; returns HTML.
+   *
    * @param userId user id
    * @param description description
    * @param amount amount
@@ -544,8 +560,8 @@ public class RouteController {
    * @return HTML confirmation
    */
   @PostMapping(value = "/users/{userId}/transactions/form",
-    consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
-    produces = MediaType.TEXT_HTML_VALUE)
+      consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+      produces = MediaType.TEXT_HTML_VALUE)
   public ResponseEntity<String> createTransactionFromFormHtml(
       @PathVariable final UUID userId,
       @RequestParam final String description,
@@ -553,7 +569,8 @@ public class RouteController {
       @RequestParam final String category) {
     try {
       if (LOGGER.isLoggable(Level.INFO)) {
-        LOGGER.info(POST_USERS + userId + "/transactions/form called - Creating transaction via form.");
+        LOGGER.info(POST_USERS + userId
+            + "/transactions/form called - Creating transaction via form.");
       }
       if (!mockApiService.getUser(userId).isPresent()) {
         if (LOGGER.isLoggable(Level.WARNING)) {
@@ -592,6 +609,7 @@ public class RouteController {
 
   /**
    * Updates a transaction via JSON.
+   *
    * @param userId user id
    * @param transactionId transaction id
    * @param updates field map
@@ -643,6 +661,7 @@ public class RouteController {
 
   /**
    * Shows transaction create form.
+   *
    * @param userId user id
    * @return HTML form
    */
@@ -687,6 +706,7 @@ public class RouteController {
 
   /**
    * Deletes a transaction via JSON.
+   *
    * @param userId user id
    * @param transactionId transaction id
    * @return deletion result
@@ -733,6 +753,7 @@ public class RouteController {
 
   /**
    * Deletes a transaction via GET (testing).
+   *
    * @param userId user id
    * @param transactionId transaction id
    * @return plain text result
@@ -743,7 +764,8 @@ public class RouteController {
       @PathVariable final UUID transactionId) {
 
     if (LOGGER.isLoggable(Level.INFO)) {
-      LOGGER.info("GET /users/" + userId + "/deletetransaction/" + transactionId + " called - Deleting via GET.");
+      LOGGER.info("GET /users/" + userId + "/deletetransaction/" 
+          + transactionId + " called - Deleting via GET.");
     }
 
     if (!mockApiService.getUser(userId).isPresent()) {
@@ -771,7 +793,8 @@ public class RouteController {
     }
 
     if (LOGGER.isLoggable(Level.INFO)) {
-      LOGGER.info("Transaction deleted successfully via GET for user " + userId + ": " + transactionId);
+      LOGGER.info("Transaction deleted successfully via GET for user " 
+          + userId + ": " + transactionId);
     }
     return "Transaction deleted successfully!";
   }
@@ -782,6 +805,7 @@ public class RouteController {
 
   /**
    * Budget page.
+   *
    * @param userId user id
    * @return HTML page
    */
@@ -828,6 +852,7 @@ public class RouteController {
 
   /**
    * Updates budget via JSON.
+   *
    * @param userId user id
    * @param budgetUpdate map with fields
    * @return budget report
@@ -859,6 +884,7 @@ public class RouteController {
 
   /**
    * Updates budget via form; returns HTML.
+   *
    * @param userId user id
    * @param budget new budget
    * @return HTML confirmation
@@ -896,6 +922,7 @@ public class RouteController {
 
   /**
    * Weekly summary page.
+   *
    * @param userId user id
    * @return HTML page
    */
@@ -927,8 +954,8 @@ public class RouteController {
       transactionsHtml.append("<p>No transactions in the last 7 days.</p>");
     } else {
       transactionsHtml.append(
-        "<table border='1' style='border-collapse: collapse; width: 100%;'>"
-        + "<tr><th>Description</th><th>Amount</th><th>Category</th><th>Date</th></tr>");
+          "<table border='1' style='border-collapse: collapse; width: 100%;'>"
+          + "<tr><th>Description</th><th>Amount</th><th>Category</th><th>Date</th></tr>");
       for (final Transaction transaction : wkTransactions) {
         transactionsHtml.append("<tr><td>")
             .append(transaction.getDescription())
@@ -954,6 +981,7 @@ public class RouteController {
 
   /**
    * Monthly summary page.
+   *
    * @param userId user id
    * @return HTML page
    */
@@ -981,6 +1009,7 @@ public class RouteController {
 
   /**
    * Budget report JSON.
+   *
    * @param userId user id
    * @return JSON budget report
    */
@@ -1010,21 +1039,27 @@ public class RouteController {
 
   /**
    * 404 handler.
+   *
    * @param exception exception
    * @return JSON error
    */
   @ExceptionHandler(NoSuchElementException.class)
-  public ResponseEntity<Map<String, String>> handleNotFound(final NoSuchElementException exception) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", exception.getMessage()));
+  public ResponseEntity<Map<String, String>> handleNotFound(
+        final NoSuchElementException exception) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(Map.of("error", exception.getMessage()));
   }
 
   /**
    * 400 handler.
+   *
    * @param exception exception
    * @return JSON error
    */
   @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<Map<String, String>> handleBadRequest(final IllegalArgumentException exception) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", exception.getMessage()));
+  public ResponseEntity<Map<String, String>> handleBadRequest(
+        final IllegalArgumentException exception) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(Map.of("error", exception.getMessage()));
   }
 }

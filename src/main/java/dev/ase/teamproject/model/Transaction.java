@@ -56,7 +56,8 @@ public class Transaction implements Comparable<Transaction> {
    * @param category The category of the transaction.
    * @param description A brief description of the transaction.
    */
-  public Transaction(final UUID userId, final double amount, final String category, final String description) {
+  public Transaction(final UUID userId, final double amount, 
+      final String category, final String description) {
     this.userId = userId;
     this.amount = amount;
     this.category = category;
@@ -116,12 +117,10 @@ public class Transaction implements Comparable<Transaction> {
    *                  when the transaction occurred.
    */
   public void setTimestamp(final LocalDateTime timestamp) {
-    // If timestamp is null, use current time
-    final LocalDateTime effectiveTime =
-        (timestamp == null) ? LocalDateTime.now() : timestamp;
-
-    this.timestamp = effectiveTime;
-    this.date = effectiveTime.toLocalDate();
+    this.timestamp = timestamp;
+    if (timestamp != null) {
+      this.date = timestamp.toLocalDate();
+    }
   }
 
   /** Getter for the calendar date of the transaction. */
@@ -137,15 +136,11 @@ public class Transaction implements Comparable<Transaction> {
    * @param date The {@code LocalDate} value representing the transaction date.
    */
   public void setDate(final LocalDate date) {
-    // If date is null, use today's date
-    final LocalDate effectiveDate =
-        (date == null) ? LocalDate.now() : date;
-
-    this.date = effectiveDate;
+    this.date = date;
 
     // If timestamp is still null, set it to start of the effective day
-    if (this.timestamp == null) {
-      this.timestamp = effectiveDate.atStartOfDay();
+    if (date != null && this.timestamp == null) {
+      this.timestamp = date.atStartOfDay();
     }
   }
 
