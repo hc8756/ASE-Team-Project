@@ -106,4 +106,32 @@
 		</plugins>
 	</build>
 
+	<reporting>
+		<excludeDefaults>true</excludeDefaults>
+		<plugins>
+			<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-pmd-plugin</artifactId>
+			<version>3.27.0</version>
+
+			<reportSets>
+				<reportSet>
+				<reports>
+					<report>pmd</report>
+					<report>cpd</report>
+				</reports>
+				</reportSet>
+			</reportSets>
+
+			<configuration>
+				<rulesets>
+				<ruleset>src/main/resources/all-java.xml</ruleset>
+				</rulesets>
+				<linkXRef>false</linkXRef>
+				<printFailingErrors>true</printFailingErrors>
+			</configuration>
+			</plugin>
+		</plugins>
+	</reporting>
+
 </project>
