@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,46 +24,113 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * This class contains all the API routes for the application.
+ * API routes for the application.
  */
 @RestController
+@SuppressWarnings({
+    "PMD.CyclomaticComplexity", // Complexity due to many routes 
+    "PMD.TooManyMethods", // Many endpoints in one controller
+    "PMD.OnlyOneReturn", // Multiple return statements for clarity
+    "PMD.AvoidCatchingGenericException", // Catching RuntimeException for logging
+    "PMD.CommentSize" // Comments enhance understanding
+})
+
 public class RouteController {
 
+  /** Class logger. */
   private static final Logger LOGGER = Logger.getLogger(RouteController.class.getName());
+
+  /** Common HTML literal. */
+  private static final String HTML_OPEN = "<html><body>";
+
+  /** Common HTML literal. */
+  private static final String HTML_CLOSE = "</body></html>";
+
+  /** Common HTML literal. */
+  private static final String P_OPEN = "<p>";
+
+  /** Common HTML literal. */
+  private static final String P_CLOSE = "</p>";
+
+  /** Common HTML literal. */
+  private static final String H2_OPEN = "<h2>";
+
+  /** Common HTML literal. */
+  private static final String H2_CLOSE = "</h2>";
+
+  /** Common HTML literal. */
+  private static final String FMT_2F = "%.2f";
+
+  /** Common HTML literal. */
+  private static final String USER_NF_PREFIX = "User ";
+
+  /** Common HTML literal. */
+  private static final String TX_NF_PREFIX = "Transaction ";
+
+  /** Common HTML literal. */
+  private static final String NF_SUFFIX = " not found";
+
+  /** Common HTML literal. */
+  private static final String NF_FOR_USER = " not found for user ";
+
+  /** Common HTML literal. */
+  private static final String FORM_CLOSE = "</form>";
+
+  /** Common HTML literal. */
+  private static final String REQUIRED = " required><br><br>";
+
+  /** Common string literal. */
+  private static final String GET_USERS = "GET /users/";
+
+  /** Common string literal. */
+  private static final String POST_USERS = "POST /users/";
+
+  /** Service layer. */
   private final MockApiService mockApiService;
 
-  public RouteController(MockApiService mockApiService) {
+  /**
+   * Constructs the controller.
+   *
+   * @param mockApiService service dependency
+   */
+  public RouteController(final MockApiService mockApiService) {
     this.mockApiService = mockApiService;
   }
 
   /**
-   * Displays the home page listing all users.
+   * Home page listing all users.
    *
-   * @return A {@code ResponseEntity} containing HTML text with an HTTP 200 response.
    */
   @GetMapping({"/", "/index"})
   public ResponseEntity<String> index() {
-    LOGGER.info("GET /index called - Fetching home page with user list.");
-    List<User> users = mockApiService.viewAllUsers();
-    StringBuilder userList = new StringBuilder();
-    
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("GET /index called - Fetching home page with user list.");
+    }
+    final List<User> users = mockApiService.viewAllUsers();
+    final StringBuilder userList = new StringBuilder(Math.max(64, users.size() * 48));
+
     if (users.isEmpty()) {
-      LOGGER.info("No users found in database.");
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("No users found in database.");
+      }
       userList.append("No users found.");
     } else {
-      LOGGER.info("Fetched " + users.size() + " user(s) for index page.");
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("Fetched " + users.size() + " user(s) for index page.");
+      }
       userList.append("Existing Users:<br>");
-      for (User user : users) {
-        userList.append(String.format("- <a href='/users/%s'>%s</a> | %s | Budget: $%.2f<br>", 
+      for (final User user : users) {
+        userList.append(String.format(
+            "- <a href='/users/%s'>%s</a> | %s | Budget: $%.2f<br>",
             user.getUserId(), user.getUsername(), user.getEmail(), user.getBudget()));
       }
     }
-    
-    String html = "<html><body>"
-            + "<h1>Welcome to the Personal Finance Tracker</h1>"
-            + "<p>" + userList.toString() + "</p>"
-            + "</body></html>";
-    
+
+    final String html = HTML_OPEN
+        + "<h1>Welcome to the Personal Finance Tracker</h1>"
+        + P_OPEN + userList + P_CLOSE
+        + HTML_CLOSE;
+
     return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
   }
 
@@ -73,827 +141,895 @@ public class RouteController {
   /**
    * Returns all users.
    *
-   * @return A {@code List} of {@code User} objects.
+   * @return list of users
    */
   @GetMapping("/users")
   public List<User> getAllUsers() {
-    LOGGER.info("GET /users called - Retrieving all users.");
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("GET /users called - Retrieving all users.");
+    }
     return mockApiService.viewAllUsers();
   }
 
   /**
-   * Returns the details of a specific user.
+   * Returns details of a user.
    *
-   * @param userId A {@code UUID} representing the unique identifier of the user.
-   *
-   * @return A {@code ResponseEntity} containing the {@code User} object with an
-   *         HTTP 200 response if found
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId user id
+   * @return user
    */
   @GetMapping("/users/{userId}")
-  public ResponseEntity<User> getUser(@PathVariable UUID userId) {
-    LOGGER.info("GET /users/" + userId + " called - Fetching user details.");
+  public ResponseEntity<User> getUser(@PathVariable final UUID userId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(GET_USERS + userId + " called - Fetching user details.");
+    }
     return mockApiService.getUser(userId)
-        .map(user -> {
-          LOGGER.info("User found: " + user.getUsername());
-          return ResponseEntity.ok(user);
+        .map(u -> {
+          if (LOGGER.isLoggable(Level.INFO)) {
+            LOGGER.info("User found: " + u.getUsername());
+          }
+          return ResponseEntity.ok(u);
         })
         .orElseThrow(() -> {
-          LOGGER.warning("User not found with ID: " + userId);
-          return new NoSuchElementException("User " + userId + " not found");
+          if (LOGGER.isLoggable(Level.WARNING)) {
+            LOGGER.warning("User not found with ID: " + userId);
+          }
+          return new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
         });
   }
 
   /**
-   * Creates a new user using a JSON payload.
+   * Creates a user via JSON.
    *
-   * @param user A {@code User} object to be created.
-   *
-   * @return A {@code ResponseEntity} containing the saved {@code User} with an
-   *         HTTP 201 Created response.
+   * @param user user payload
+   * @return created user
    */
-  @PostMapping(value = "/users",
-                consumes = MediaType.APPLICATION_JSON_VALUE,
-                produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<User> createUserJson(@RequestBody User user) {
-    LOGGER.info("POST /users called - Creating new user via JSON: " + user.getUsername());
-    User saved = mockApiService.addUser(user);
+  @PostMapping(
+      value = "/users",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<User> createUserJson(@RequestBody final User user) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("POST /users called - Creating new user via JSON: " + user.getUsername());
+    }
+    final User saved = mockApiService.addUser(user);
     return ResponseEntity.status(HttpStatus.CREATED).body(saved);
   }
 
   /**
-   * Creates a new user from a create-form endpoint submission.
-   * Shows results via HTML form.
+   * Creates a user via form; returns HTML.
    *
-   * @param username A {@code String} containing the user's name.
-   * @param email    A {@code String} containing the user's email.
-   * @param budget   A {@code double} representing the user's initial budget.
-   *
-   * @return A {@code ResponseEntity} containing an HTML success message with an
-   *         HTTP 201 Created response.
+   * @param username username
+   * @param email email
+   * @param budget budget
+   * @return HTML confirmation
    */
-  @PostMapping(value = "/users/form", 
-                consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
-                produces = MediaType.TEXT_HTML_VALUE)
+  @PostMapping(
+      value = "/users/form",
+      consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+      produces = MediaType.TEXT_HTML_VALUE)
   public ResponseEntity<String> createUserFromFormHtml(
-          @RequestParam String username,
-          @RequestParam String email,
-          @RequestParam double budget) {
+      @RequestParam final String username,
+      @RequestParam final String email,
+      @RequestParam final double budget) {
 
-    LOGGER.info("POST /users/form called - Creating user via form: " + username);
-    User user = new User();
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("POST /users/form called - Creating user via form: " + username);
+    }
+    final User user = new User();
     user.setUsername(username);
     user.setEmail(email);
     user.setBudget(budget);
-    
-    User saved = mockApiService.addUser(user);
-    LOGGER.info("User created successfully via form. ID: " + saved.getUserId());
-    
-    String html = "<html><body>"
-            + "<h2>User Created Successfully!</h2>"
-            + "<p><strong>User ID:</strong> " + saved.getUserId() + "</p>"
-            + "<p><strong>Username:</strong> " + saved.getUsername() + "</p>"
-            + "<p><strong>Email:</strong> " + saved.getEmail() + "</p>"
-            + "<p><strong>Budget:</strong> $" + String.format("%.2f", saved.getBudget()) + "</p>"
-            + "</body></html>";
-    
+
+    final User saved = mockApiService.addUser(user);
+
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("User created successfully via form. ID: " + saved.getUserId());
+    }
+
+    final String html = HTML_OPEN
+        + H2_OPEN + "User Created Successfully!" + H2_CLOSE
+        + "<p><strong>User ID:</strong> " + saved.getUserId() + P_CLOSE
+        + "<p><strong>Username:</strong> " + saved.getUsername() + P_CLOSE
+        + "<p><strong>Email:</strong> " + saved.getEmail() + P_CLOSE
+        + "<p><strong>Budget:</strong> $" + String.format(FMT_2F, saved.getBudget()) + P_CLOSE
+        + HTML_CLOSE;
+
     return ResponseEntity.status(HttpStatus.CREATED).body(html);
   }
 
   /**
-   * Updates an existing user with JSON data.
+   * Updates a user via JSON.
    *
-   * @param userId A {@code UUID} representing the user's ID.
-   * @param userUpdates   A {@code User} object containing updated data.
-   *
-   * @return A {@code ResponseEntity} with the updated {@code User} and an
-   *         HTTP 200 response if found
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId id
+   * @param userUpdates updates
+   * @return updated user
    */
-  @PutMapping(value = "/users/{userId}",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+  @PutMapping(
+      value = "/users/{userId}",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<User> updateUserJson(
-        @PathVariable UUID userId,
-        @RequestBody User userUpdates) {
+      @PathVariable final UUID userId,
+      @RequestBody final User userUpdates) {
 
-    LOGGER.info("PUT /users/" + userId + " called - Updating user via JSON.");
-    Optional<User> existingUser = mockApiService.getUser(userId);
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("PUT /users/" + userId + " called - Updating user via JSON.");
+    }
+
+    final Optional<User> existingUser = mockApiService.getUser(userId);
     if (!existingUser.isPresent()) {
-      LOGGER.warning("Cannot update user - not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot update user - not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
-    
-    User existing = existingUser.get();
-    User mergedUser = new User();
-    mergedUser.setUserId(userId);  // Set original id
-    
-    // Merge username
-    if (userUpdates.getUsername() != null && !userUpdates.getUsername().isEmpty()) {
-      mergedUser.setUsername(userUpdates.getUsername());
-    } else {
-      mergedUser.setUsername(existing.getUsername());
-    }
-    
-    // Merge email
-    if (userUpdates.getEmail() != null && !userUpdates.getEmail().isEmpty()) {
-      mergedUser.setEmail(userUpdates.getEmail());
-    } else {
-      mergedUser.setEmail(existing.getEmail());
-    }
-    
-    // Merge budget
-    if (userUpdates.getBudget() != 0.0) {
-      mergedUser.setBudget(userUpdates.getBudget());
-    } else {
-      mergedUser.setBudget(existing.getBudget());
-    }
-    
-    // Delete and recreate with merged data and preserved ID
-    mockApiService.deleteUser(userId);
-    User saved = mockApiService.addUser(mergedUser);
 
-    LOGGER.info("User updated successfully. ID: " + userId);
+    final User existing = existingUser.get();
+
+    // Mutate the provided instance instead of creating a new one
+    userUpdates.setUserId(userId);
+
+    if (userUpdates.getUsername() == null || userUpdates.getUsername().isEmpty()) {
+      userUpdates.setUsername(existing.getUsername());
+    }
+    if (userUpdates.getEmail() == null || userUpdates.getEmail().isEmpty()) {
+      userUpdates.setEmail(existing.getEmail());
+    }
+    userUpdates.setBudget(userUpdates.getBudget() == 0.0
+        ? existing.getBudget()
+        : userUpdates.getBudget());
+
+    mockApiService.deleteUser(userId);
+    final User saved = mockApiService.addUser(userUpdates);
+
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("User updated successfully. ID: " + userId);
+    }
+
     return ResponseEntity.ok(saved);
   }
+
   /**
-   * Updates an existing user from edit-form endpoint submission.
-   * Shows results via HTML form.
+   * Updates a user via form; returns HTML.
    *
-   * @param userId   A {@code UUID} representing the user’s ID.
-   * @param username A {@code String} containing the updated username.
-   * @param email    A {@code String} containing the updated email address.
-   * @param budget   A {@code double} containing the new budget.
-   *
-   * @return A {@code ResponseEntity} containing an HTML confirmation page with an
-   *         HTTP 200 response.
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId id
+   * @param username username
+   * @param email email
+   * @param budget budget
+   * @return HTML confirmation
    */
-
-  @PostMapping(value = "/users/{userId}/update-form", 
-                consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
-                produces = MediaType.TEXT_HTML_VALUE)
+  @PostMapping(
+      value = "/users/{userId}/update-form",
+      consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+      produces = MediaType.TEXT_HTML_VALUE)
   public ResponseEntity<String> updateUserFromFormHtml(
-          @PathVariable UUID userId,
-          @RequestParam String username,
-          @RequestParam String email,
-          @RequestParam double budget) {
+      @PathVariable final UUID userId,
+      @RequestParam final String username,
+      @RequestParam final String email,
+      @RequestParam final double budget) {
 
-    LOGGER.info("POST /users/" + userId + "/update-form called - Updating user via form.");
-    Optional<User> existingUser = mockApiService.getUser(userId);
-    if (!existingUser.isPresent()) {
-      LOGGER.warning("Cannot update form user - not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(POST_USERS + userId + "/update-form called - Updating user via form.");
     }
-    
-    User user = new User();
+    final Optional<User> existingUser = mockApiService.getUser(userId);
+    if (!existingUser.isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot update form user - not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
+
+    final User user = new User();
     user.setUserId(userId);
     user.setUsername(username);
     user.setEmail(email);
     user.setBudget(budget);
-    
-    mockApiService.deleteUser(userId);
-    User saved = mockApiService.addUser(user);
 
-    LOGGER.info("User updated successfully via form. ID: " + userId);
-    
-    String html = "<html><body>" 
-            + "<h2>User Updated Successfully!</h2>" 
-            + "<p><strong>User ID:</strong> " + saved.getUserId() + "</p>" 
-            + "<p><strong>Username:</strong> " + saved.getUsername() + "</p>" 
-            + "<p><strong>Email:</strong> " + saved.getEmail() + "</p>" 
-            + "<p><strong>Budget:</strong> $" + String.format("%.2f", saved.getBudget()) + "</p>" 
-            + "</body></html>";
-    return ResponseEntity.ok().body(html);
+    mockApiService.deleteUser(userId);
+    final User saved = mockApiService.addUser(user);
+
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("User updated successfully via form. ID: " + userId);
+    }
+
+    final String html = HTML_OPEN
+        + H2_OPEN + "User Updated Successfully!" + H2_CLOSE
+        + "<p><strong>User ID:</strong> " + saved.getUserId() + P_CLOSE
+        + "<p><strong>Username:</strong> " + saved.getUsername() + P_CLOSE
+        + "<p><strong>Email:</strong> " + saved.getEmail() + P_CLOSE
+        + "<p><strong>Budget:</strong> $" + String.format(FMT_2F, saved.getBudget()) + P_CLOSE
+        + HTML_CLOSE;
+    return ResponseEntity.ok(html);
   }
 
   /**
-   * Displays a simple HTML form for creating a new user.
+   * Shows user create form.
    *
-   * @return An HTML form string.
+   * @return HTML form
    */
   @GetMapping(value = "/users/create-form", produces = MediaType.TEXT_HTML_VALUE)
   public String showCreateUserForm() {
-    LOGGER.info("GET /users/create-form called - Displaying user creation form.");
-    return "<html><body>"
-            + "<h2>Create New User</h2>"
-            + "<form action='/users/form' method='post'>"
-            + "Username: <input type='text' name='username' required><br><br>"
-            + "Email: <input type='email' name='email' required><br><br>"
-            + "Budget: <input type='number' name='budget' step='0.01' required><br><br>"
-            + "<input type='submit' value='Create User'>"
-            + "</body></html>";
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("GET /users/create-form called - Displaying user creation form.");
+    }
+    return HTML_OPEN
+        + "<h2>Create New User</h2>"
+        + "<form action='/users/form' method='post'>"
+        + "Username: <input type='text' name='username'" + REQUIRED
+        + "Email: <input type='email' name='email'" + REQUIRED
+        + "Budget: <input type='number' name='budget' step='0.01'" + REQUIRED
+        + "<input type='submit' value='Create User'>"
+        + FORM_CLOSE
+        + HTML_CLOSE;
   }
 
   /**
-   * Displays an editable HTML form populated with an existing user’s information.
+   * Shows user edit form.
    *
-   * @param userId A {@code UUID} representing the user to edit.
-   *
-   * @return An HTML form string if the user exists.
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId id
+   * @return HTML form
    */
   @GetMapping(value = "/users/{userId}/edit-form", produces = MediaType.TEXT_HTML_VALUE)
-  public String showEditUserForm(@PathVariable UUID userId) {
-    LOGGER.info("GET /users/" + userId + "/edit-form called - Displaying edit form.");
-    Optional<User> userOpt = mockApiService.getUser(userId);
-    if (!userOpt.isPresent()) {
-      LOGGER.warning("Cannot display edit form - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+  public String showEditUserForm(@PathVariable final UUID userId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(GET_USERS + userId + "/edit-form called - Displaying edit form.");
     }
-    
-    User user = userOpt.get();
-    LOGGER.info("Edit form displayed for user: " + user.getUsername());
-    return "<html><body>"
-            + "<h2>Edit User</h2>"
-            + "<form action='/users/" + userId + "/update-form' method='post'>"
-            + "Username: <input type='text' name='username' value='" + user.getUsername() 
-            + "' required><br><br>"
-            + "Email: <input type='email' name='email' value='" + user.getEmail() 
-            + "' required><br><br>"
-            + "Budget: <input type='number' name='budget' step='0.01' value='" 
-            + user.getBudget() + "' required><br><br>"
-            + "<input type='submit' value='Update User'>"
-            + "</form>"
-            + "</body></html>";
+    final Optional<User> userOpt = mockApiService.getUser(userId);
+    if (!userOpt.isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot display edit form - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
+
+    final User user = userOpt.get();
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Edit form displayed for user: " + user.getUsername());
+    }
+    return HTML_OPEN
+        + "<h2>Edit User</h2>"
+        + "<form action='/users/" + userId + "/update-form' method='post'>"
+        + "Username: <input type='text' name='username' value='" + user.getUsername()
+        + "'" + REQUIRED
+        + "Email: <input type='email' name='email' value='" + user.getEmail()
+        + "'" + REQUIRED
+        + "Budget: <input type='number' name='budget' step='0.01' value='"
+        + user.getBudget() + "'" + REQUIRED
+        + "<input type='submit' value='Update User'>"
+        + FORM_CLOSE
+        + HTML_CLOSE;
   }
 
   /**
-   * Deletes a user by ID using a JSON API request.
+   * Deletes a user by ID via JSON.
    *
-   * @param userId A {@code UUID} representing the user to delete.
-   *
-   * @return A {@code ResponseEntity} containing a JSON confirmation object with an
-   *         HTTP 200 response if successful.
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId id
+   * @return deletion result
    */
   @DeleteMapping("/users/{userId}")
-  public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable UUID userId) {
-    LOGGER.info("DELETE /users/" + userId + " called - Deleting user.");
-    boolean deleted = mockApiService.deleteUser(userId);
-    if (!deleted) {
-      LOGGER.warning("User not found or already deleted: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+  public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable final UUID userId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("DELETE /users/" + userId + " called - Deleting user.");
     }
-    LOGGER.info("User deleted successfully: " + userId);
+    final boolean deleted = mockApiService.deleteUser(userId);
+    if (!deleted) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("User not found or already deleted: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("User deleted successfully: " + userId);
+    }
     return ResponseEntity.ok(Map.of("deleted", true, "userId", userId));
   }
 
   /**
-   * Deletes a user through a GET request (intended for quick browser testing).
+   * Deletes a user via GET (testing).
    *
-   * @param userId A {@code UUID} representing the user to delete.
-   *
-   * @return A plain-text success message with HTTP 200 response if successful.
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId id
+   * @return plain text result
    */
   @GetMapping("/deleteuser/{userId}")
-  public String deleteUserViaGet(@PathVariable UUID userId) {
-    LOGGER.info("GET /deleteuser/" + userId + " called - Deleting user via GET.");
-    boolean deleted = mockApiService.deleteUser(userId);
-    if (!deleted) {
-      LOGGER.warning("Cannot delete via GET - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+  public String deleteUserViaGet(@PathVariable final UUID userId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("GET /deleteuser/" + userId + " called - Deleting user via GET.");
     }
-    LOGGER.info("User deleted successfully via GET: " + userId);
+    final boolean deleted = mockApiService.deleteUser(userId);
+    if (!deleted) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot delete via GET - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("User deleted successfully via GET: " + userId);
+    }
     return "User deleted successfully";
   }
 
   // ---------------------------------------------------------------------------
-  // Transaction Management
+  // Transactions
   // ---------------------------------------------------------------------------
 
   /**
-   * Returns all transactions belonging to a specific user.
+   * Lists transactions for a user.
    *
-   * @param userId A {@code UUID} representing the user whose transactions are requested.
-   *
-   * @return A {@code ResponseEntity} containing a {@code List<Transaction>} with an
-   *         HTTP 200 OK response if successful, an HTTP 404 Not Found if the user does not exist,
-   *         or an HTTP 500 Internal Server Error if an exception occurs.
+   * @param userId id
+   * @return list or error
    */
   @GetMapping("/users/{userId}/transactions")
-  public ResponseEntity<?> getUserTransactions(@PathVariable UUID userId) {
-    LOGGER.info("GET /users/" + userId + "/transactions called - Fetching all transactions.");
+  public ResponseEntity<?> getUserTransactions(@PathVariable final UUID userId) {
     try {
-      if (!mockApiService.getUser(userId).isPresent()) {
-        LOGGER.warning("User not found for transaction listing: " + userId);
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body("Error: User " + userId + " not found");
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("GET /users/" + userId + "/transactions called - Fetching all transactions.");
       }
-      List<Transaction> transactions = mockApiService.getTransactionsByUser(userId);
-      LOGGER.info("Retrieved " + transactions.size() + " transactions for user " + userId);
+      if (!mockApiService.getUser(userId).isPresent()) {
+        if (LOGGER.isLoggable(Level.WARNING)) {
+          LOGGER.warning("User not found for transaction listing: " + userId);
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body("Error: User " + userId + NF_SUFFIX);
+      }
+      final List<Transaction> transactions = mockApiService.getTransactionsByUser(userId);
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("Retrieved " + transactions.size() + " transactions for user " + userId);
+      }
       return ResponseEntity.ok(transactions);
-    } catch (Exception e) {
-      LOGGER.severe("Error retrieving transactions for user " + userId + ": " + e.getMessage());
+    } catch (RuntimeException e) {
+      if (LOGGER.isLoggable(Level.SEVERE)) {
+        LOGGER.severe("Error retrieving transactions for user " + userId + ": " + e.getMessage());
+      }
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body("Error retrieving transactions: " + e.getMessage());
+          .body("Error retrieving transactions: " + e.getMessage());
     }
   }
 
   /**
-   * Returns the details of a specific transaction belonging to a user.
+   * Gets a transaction for a user.
    *
-   * @param userId        A {@code UUID} representing the user who owns the transaction.
-   * @param transactionId A {@code UUID} representing the unique identifier of the transaction.
-   *
-   * @return A {@code ResponseEntity} containing the {@code Transaction} object with
-   *         HTTP 200 OK if found.
-   * @throws NoSuchElementException if the user or transaction does not exist.
+   * @param userId user id
+   * @param transactionId transaction id
+   * @return transaction
    */
   @GetMapping("/users/{userId}/transactions/{transactionId}")
   public ResponseEntity<Transaction> getTransaction(
-          @PathVariable UUID userId, 
-          @PathVariable UUID transactionId) {
+      @PathVariable final UUID userId,
+      @PathVariable final UUID transactionId) {
 
-    LOGGER.info("GET /users/" + userId + "/transactions/"
-        + transactionId + " called - Fetching transaction details.");
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(GET_USERS + userId + "/transactions/"
+          + transactionId + " called - Fetching transaction details.");
+    }
     if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot fetch transaction - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot fetch transaction - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
     return mockApiService.getTransaction(transactionId)
-            .filter(tx -> tx.getUserId().equals(userId))
-            .map(ResponseEntity::ok)
-            .orElseThrow(() -> new NoSuchElementException("Transaction "
-            + transactionId + " not found for user " + userId));
+        .filter(transaction -> transaction.getUserId().equals(userId))
+        .map(ResponseEntity::ok)
+        .orElseThrow(() -> new NoSuchElementException(
+            TX_NF_PREFIX + transactionId + NF_FOR_USER + userId));
   }
 
   /**
-   * Creates a new transaction for a user using a JSON payload.
+   * Creates a transaction via JSON.
    *
-   * @param userId      A {@code UUID} representing the user who owns the transaction.
-   * @param transaction A {@code Transaction} object containing the transaction details.
-   *
-   * @return A {@code ResponseEntity} containing the saved {@code Transaction} with
-   *         HTTP 201 Created.
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId user id
+   * @param transaction transaction
+   * @return created transaction
    */
-  @PostMapping(value = "/users/{userId}/transactions",
-                consumes = MediaType.APPLICATION_JSON_VALUE,
-                produces = MediaType.APPLICATION_JSON_VALUE)
+  @PostMapping(
+      value = "/users/{userId}/transactions",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Transaction> createTransactionJson(
-          @PathVariable UUID userId,
-          @RequestBody Transaction transaction) {
+      @PathVariable final UUID userId,
+      @RequestBody final Transaction transaction) {
 
-    LOGGER.info("POST /users/" + userId
-        + "/transactions called - Creating new transaction via JSON.");
-
-    if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot create transaction - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(POST_USERS + userId
+          + "/transactions called - Creating new transaction via JSON.");
     }
-    
-    // Ensure transaction belongs to correct user
+    if (!mockApiService.getUser(userId).isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot create transaction - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
+
     transaction.setUserId(userId);
-    Transaction saved = mockApiService.addTransaction(transaction);
-    LOGGER.info("Transaction created successfully for user "
-        + userId + ": " + saved.getTransactionId());
+    final Transaction saved = mockApiService.addTransaction(transaction);
+
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Transaction created successfully for user "
+          + userId + ": " + saved.getTransactionId());
+    }
     return ResponseEntity.status(HttpStatus.CREATED).body(saved);
   }
 
   /**
-   * Creates a new transaction for a user via HTML form submission.
+   * Creates a transaction via form; returns HTML.
    *
-   * @param userId      A {@code UUID} representing the user who owns the transaction.
-   * @param description A {@code String} describing the transaction.
-   * @param amount      A {@code double} representing the transaction amount.
-   * @param category    A {@code String} specifying the transaction category.
-   *
-   * @return A {@code ResponseEntity} containing an HTML confirmation page with an
-   *         HTTP 201 Created response if successful, an HTTP 404 Not Found if the user does not
-   *         exist, or an HTTP 500 Internal Server Error if an exception occurs.
+   * @param userId user id
+   * @param description description
+   * @param amount amount
+   * @param category category
+   * @return HTML confirmation
    */
-  @PostMapping(value = "/users/{userId}/transactions/form", 
-              consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
-              produces = MediaType.TEXT_HTML_VALUE)
+  @PostMapping(value = "/users/{userId}/transactions/form",
+      consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+      produces = MediaType.TEXT_HTML_VALUE)
   public ResponseEntity<String> createTransactionFromFormHtml(
-          @PathVariable UUID userId,
-          @RequestParam String description,
-          @RequestParam double amount,
-          @RequestParam String category) {
-
-    LOGGER.info("POST /users/" + userId
-        + "/transactions/form called - Creating transaction via form.");
-
+      @PathVariable final UUID userId,
+      @RequestParam final String description,
+      @RequestParam final double amount,
+      @RequestParam final String category) {
     try {
-      if (!mockApiService.getUser(userId).isPresent()) {
-        LOGGER.warning("Cannot create transaction form - user not found: " + userId);
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body("Error: User " + userId + " not found");
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info(POST_USERS + userId
+            + "/transactions/form called - Creating transaction via form.");
       }
-      
-      Transaction transaction = new Transaction(userId, amount, category, description);
-      Transaction saved = mockApiService.addTransaction(transaction);
+      if (!mockApiService.getUser(userId).isPresent()) {
+        if (LOGGER.isLoggable(Level.WARNING)) {
+          LOGGER.warning("Cannot create transaction form - user not found: " + userId);
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body("Error: User " + userId + NF_SUFFIX);
+      }
 
-      LOGGER.info("Transaction created successfully via form for user " + userId
-          + ": " + saved.getTransactionId());
-      
-      String html = "<html><body>"
-              + "<h2>Transaction Created Successfully!</h2>"
-              + "<p><strong>Description:</strong> " + saved.getDescription() + "</p>"
-              + "<p><strong>Amount:</strong> $" + String.format("%.2f", saved.getAmount()) + "</p>"
-              + "<p><strong>Category:</strong> " + saved.getCategory() + "</p>"
-              + "<br>"
-              + "</body></html>";
-      
+      final Transaction transaction = new Transaction(userId, amount, category, description);
+      final Transaction saved = mockApiService.addTransaction(transaction);
+
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("Transaction created successfully via form for user " + userId
+            + ": " + saved.getTransactionId());
+      }
+
+      final String html = "<html><body>"
+          + "<h2>Transaction Created Successfully!</h2>"
+          + "<p><strong>Description:</strong> " + saved.getDescription() + P_CLOSE
+          + "<p><strong>Amount:</strong> $" + String.format("%.2f", saved.getAmount()) + P_CLOSE
+          + "<p><strong>Category:</strong> " + saved.getCategory() + P_CLOSE
+          + "<br>"
+          + "</body></html>";
+
       return ResponseEntity.status(HttpStatus.CREATED).body(html);
-    } catch (Exception e) {
-      LOGGER.severe("Error creating transaction via form for user "
-          + userId + ": " + e.getMessage());
+    } catch (RuntimeException e) {
+      if (LOGGER.isLoggable(Level.SEVERE)) {
+        LOGGER.severe("Error creating transaction via form for user "
+            + userId + ": " + e.getMessage());
+      }
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body("Error creating transaction: " + e.getMessage());
+          .body("Error creating transaction: " + e.getMessage());
     }
   }
 
   /**
-   * Updates an existing transaction using a JSON payload.
+   * Updates a transaction via JSON.
    *
-   * @param userId        A {@code UUID} representing the user who owns the transaction.
-   * @param transactionId A {@code UUID} representing the transaction to update.
-   * @param updates       A {@code Map<String, Object>} containing the fields to update.
-   *
-   * @return A {@code ResponseEntity} containing the updated {@code Transaction} with an
-   *         HTTP 200 OK response if successful.
-   * @throws NoSuchElementException if the user does not exist, or the transaction does not exist
-   *         or does not belong to the user.
+   * @param userId user id
+   * @param transactionId transaction id
+   * @param updates field map
+   * @return updated transaction
    */
-  @PutMapping(value = "/users/{userId}/transactions/{transactionId}",
-              consumes = MediaType.APPLICATION_JSON_VALUE,
-              produces = MediaType.APPLICATION_JSON_VALUE)
+  @PutMapping(
+      value = "/users/{userId}/transactions/{transactionId}",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Transaction> updateTransactionJson(
-          @PathVariable UUID userId,
-          @PathVariable UUID transactionId,
-          @RequestBody Map<String, Object> updates) {
+      @PathVariable final UUID userId,
+      @PathVariable final UUID transactionId,
+      @RequestBody final Map<String, Object> updates) {
 
-    LOGGER.info("PUT /users/" + userId + "/transactions/"
-        + transactionId + " called - Updating transaction.");
-
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("PUT /users/" + userId + "/transactions/"
+          + transactionId + " called - Updating transaction.");
+    }
     if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot update transaction - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
-    }
-    
-    Optional<Transaction> existing = mockApiService.getTransaction(transactionId);
-    if (!existing.isPresent() 
-        || !existing.get().getUserId().equals(userId)) {
-      LOGGER.warning("Cannot update - transaction not found: "
-          + transactionId + " for user " + userId);
-      throw new NoSuchElementException("Transaction "
-      + transactionId + " not found for user " + userId);
-    }
-    
-    Optional<Transaction> updated = mockApiService.updateTransaction(transactionId, updates);
-    if (!updated.isPresent()) {
-      LOGGER.warning("Transaction update failed: " + transactionId);
-      throw new NoSuchElementException("Transaction " + transactionId + " not found");
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot update transaction - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
 
-    LOGGER.info("Transaction updated successfully: " + transactionId + " for user " + userId);
+    final Optional<Transaction> existing = mockApiService.getTransaction(transactionId);
+    if (!existing.isPresent() || !existing.get().getUserId().equals(userId)) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot update - transaction not found: "
+            + transactionId + " for user " + userId);
+      }
+      throw new NoSuchElementException(
+          TX_NF_PREFIX + transactionId + NF_FOR_USER + userId);
+    }
+
+    final Optional<Transaction> updated = mockApiService.updateTransaction(transactionId, updates);
+    if (!updated.isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Transaction update failed: " + transactionId);
+      }
+      throw new NoSuchElementException(TX_NF_PREFIX + transactionId + NF_SUFFIX);
+    }
+
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Transaction updated successfully: " + transactionId + " for user " + userId);
+    }
     return ResponseEntity.ok(updated.get());
   }
 
   /**
-   * Displays a simple HTML form for creating a new transaction for a specified user.
+   * Shows transaction create form.
    *
-   * @param userId A {@code UUID} representing the user for whom the transaction will be created.
-   *
-   * @return An HTML form string for transaction creation.
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId user id
+   * @return HTML form
    */
-  @GetMapping(value = "/users/{userId}/transactions/create-form", 
-        produces = MediaType.TEXT_HTML_VALUE)
-  public String showCreateTransactionForm(@PathVariable UUID userId) {
-
-    LOGGER.info("GET /users/" + userId
-        + "/transactions/create-form called - Displaying transaction form.");
+  @GetMapping(
+      value = "/users/{userId}/transactions/create-form",
+      produces = MediaType.TEXT_HTML_VALUE)
+  public String showCreateTransactionForm(@PathVariable final UUID userId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(GET_USERS + userId
+          + "/transactions/create-form called - Displaying transaction form.");
+    }
     if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot display transaction form - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot display transaction form - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
 
-    LOGGER.info("Transaction form displayed successfully for user " + userId);
-    return "<html><body>"
-            + "<h2>Create New Transaction</h2>"
-            + "<form action='/users/" + userId + "/transactions/form' method='post'>"
-            + "Description: <input type='text' name='description' required><br><br>"
-            + "Amount: <input type='number' name='amount' step='0.01' required><br><br>"
-            + "Category: <select name='category' required>"
-            + "<option value='FOOD'>Food</option>"
-            + "<option value='TRANSPORTATION'>Transportation</option>"
-            + "<option value='ENTERTAINMENT'>Entertainment</option>"
-            + "<option value='UTILITIES'>Utilities</option>"
-            + "<option value='SHOPPING'>Shopping</option>"
-            + "<option value='HEALTHCARE'>Healthcare</option>"
-            + "<option value='TRAVEL'>Travel</option>"
-            + "<option value='EDUCATION'>Education</option>"
-            + "<option value='OTHER'>Other</option>"
-            + "</select><br><br>"
-            + "<input type='submit' value='Create Transaction'>"
-            + "</form>"
-            + "</body></html>";
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Transaction form displayed successfully for user " + userId);
+    }
+    return HTML_OPEN
+        + "<h2>Create New Transaction</h2>"
+        + "<form action='/users/" + userId + "/transactions/form' method='post'>"
+        + "Description: <input type='text' name='description'" + REQUIRED
+        + "Amount: <input type='number' name='amount' step='0.01'" + REQUIRED
+        + "Category: <select name='category' required>"
+        + "<option value='FOOD'>Food</option>"
+        + "<option value='TRANSPORTATION'>Transportation</option>"
+        + "<option value='ENTERTAINMENT'>Entertainment</option>"
+        + "<option value='UTILITIES'>Utilities</option>"
+        + "<option value='SHOPPING'>Shopping</option>"
+        + "<option value='HEALTHCARE'>Healthcare</option>"
+        + "<option value='TRAVEL'>Travel</option>"
+        + "<option value='EDUCATION'>Education</option>"
+        + "<option value='OTHER'>Other</option>"
+        + "</select><br><br>"
+        + "<input type='submit' value='Create Transaction'>"
+        + FORM_CLOSE
+        + HTML_CLOSE;
   }
 
   /**
-   * Deletes a transaction for a specified user via a JSON API request.
+   * Deletes a transaction via JSON.
    *
-   * @param userId        A {@code UUID} representing the user who owns the transaction.
-   * @param transactionId A {@code UUID} representing the transaction to delete.
-   *
-   * @return A {@code ResponseEntity} containing a JSON confirmation object with
-   *         HTTP 200 OK if successful.
-   * @throws NoSuchElementException if the user or transaction does not exist.
+   * @param userId user id
+   * @param transactionId transaction id
+   * @return deletion result
    */
   @DeleteMapping("/users/{userId}/transactions/{transactionId}")
   public ResponseEntity<Map<String, Object>> deleteTransaction(
-          @PathVariable UUID userId, 
-          @PathVariable UUID transactionId) {
+      @PathVariable final UUID userId,
+      @PathVariable final UUID transactionId) {
 
-    LOGGER.info("DELETE /users/" + userId + "/transactions/"
-        + transactionId + " called - Deleting transaction.");
-
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("DELETE /users/" + userId + "/transactions/"
+          + transactionId + " called - Deleting transaction.");
+    }
     if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot delete transaction - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot delete transaction - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
-    
-    Optional<Transaction> existing = mockApiService.getTransaction(transactionId);
-    if (!existing.isPresent() 
-        || !existing.get().getUserId().equals(userId)) {
-      LOGGER.warning("Cannot delete transaction - not found or mismatched user. ID: "
-          + transactionId);
-      throw new NoSuchElementException("Transaction "
-          + transactionId + " not found for user " + userId);
+
+    final Optional<Transaction> existing = mockApiService.getTransaction(transactionId);
+    if (!existing.isPresent() || !existing.get().getUserId().equals(userId)) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot delete transaction - not found or mismatched user. ID: "
+            + transactionId);
+      }
+      throw new NoSuchElementException(
+          TX_NF_PREFIX + transactionId + NF_FOR_USER + userId);
     }
-    
-    boolean deleted = mockApiService.deleteTransaction(transactionId);
+
+    final boolean deleted = mockApiService.deleteTransaction(transactionId);
     if (!deleted) {
-      LOGGER.warning("Transaction deletion failed for ID: " + transactionId);
-      throw new NoSuchElementException("Transaction " + transactionId + " not found");
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Transaction deletion failed for ID: " + transactionId);
+      }
+      throw new NoSuchElementException(TX_NF_PREFIX + transactionId + NF_SUFFIX);
     }
-    LOGGER.info("Transaction deleted successfully for user " + userId + ": " + transactionId);
-    return ResponseEntity.ok(Map.of("deleted", true,
-        "userId", userId, "transactionId", transactionId));
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Transaction deleted successfully for user " + userId + ": " + transactionId);
+    }
+    return ResponseEntity.ok(Map.of(
+        "deleted", true, "userId", userId, "transactionId", transactionId));
   }
 
   /**
-   * Deletes a transaction using a GET request (for quick browser testing).
+   * Deletes a transaction via GET (testing).
    *
-   * @param userId        A {@code UUID} representing the user who owns the transaction.
-   * @param transactionId A {@code UUID} representing the transaction to delete.
-   *
-   * @return A plain-text confirmation message with HTTP 200 OK if successful,
-   *         or an error message string if the user or transaction does not exist or deletion fails.
+   * @param userId user id
+   * @param transactionId transaction id
+   * @return plain text result
    */
-
   @GetMapping("/users/{userId}/deletetransaction/{transactionId}")
   public String deleteTransactionViaGet(
-          @PathVariable UUID userId, 
-          @PathVariable UUID transactionId) {
+      @PathVariable final UUID userId,
+      @PathVariable final UUID transactionId) {
 
-    LOGGER.info("GET /users/" + userId + "/deletetransaction/"
-        + transactionId + " called - Deleting via GET.");
-    if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot delete via GET - user not found: " + userId);
-      return "Error: User " + userId + " not found";
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("GET /users/" + userId + "/deletetransaction/" 
+          + transactionId + " called - Deleting via GET.");
     }
-    
-    Optional<Transaction> existing = mockApiService.getTransaction(transactionId);
-    if (!existing.isPresent() || !existing.get().getUserId().equals(userId)) {
-      LOGGER.warning("Cannot delete via GET - transaction not found: " + transactionId);
+
+    if (!mockApiService.getUser(userId).isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot delete via GET - user not found: " + userId);
+      }
+      return "Error: User " + userId + NF_SUFFIX;
+    }
+
+    final Optional<Transaction> txOpt = mockApiService.getTransaction(transactionId);
+    final boolean belongsToUser = txOpt.map(t -> t.getUserId().equals(userId)).orElse(false);
+    if (!belongsToUser) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot delete via GET - transaction not found: " + transactionId);
+      }
       return "Error: Transaction " + transactionId + " not found for user " + userId;
     }
-    
-    boolean deleted = mockApiService.deleteTransaction(transactionId);
+
+    final boolean deleted = mockApiService.deleteTransaction(transactionId);
     if (!deleted) {
-      LOGGER.warning("Transaction deletion via GET failed: " + transactionId);
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Transaction deletion via GET failed: " + transactionId);
+      }
       return "Error: Failed to delete transaction " + transactionId;
     }
 
-    LOGGER.info("Transaction deleted successfully via GET for user "
-        + userId + ": " + transactionId);
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Transaction deleted successfully via GET for user " 
+          + userId + ": " + transactionId);
+    }
     return "Transaction deleted successfully!";
   }
 
   // ---------------------------------------------------------------------------
-  // Budget & Analytics Endpoints
+  // Budget & Analytics
   // ---------------------------------------------------------------------------
 
   /**
-   * Displays the budget management page for a specific user, including current budget,
-   * total spending, weekly spending, and quick access to related reports.
+   * Budget page.
    *
-   * @param userId A {@code UUID} representing the user whose budget page is requested.
-   *
-   * @return A raw HTML string containing the budget management dashboard if the user exists.
-   * @throws NoSuchElementException if the user is not found.
+   * @param userId user id
+   * @return HTML page
    */
   @GetMapping(value = "/users/{userId}/budget", produces = MediaType.TEXT_HTML_VALUE)
-  public String budgetManagement(@PathVariable UUID userId) {
-
-    LOGGER.info("GET /users/" + userId + "/budget called - Loading budget management page.");
-
-    if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot load budget page - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+  public String budgetManagement(@PathVariable final UUID userId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(GET_USERS + userId + "/budget called - Loading budget management page.");
     }
-    
-    User user = mockApiService.getUser(userId).get();
-    Map<String, Object> budgetReport = mockApiService.getBudgetReport(userId);
-    String weeklyTotal = String.format("%.2f", mockApiService.totalLast7Days(userId));
+    if (!mockApiService.getUser(userId).isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot load budget page - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
 
-    LOGGER.info("Budget page loaded successfully for user: " + user.getUsername());
-    return "<html><body>"
-            + "<h1>Budget Management - " + user.getUsername() + "</h1>"
-            
-            + "<h2>Current Budget</h2>"
-            + "<p><strong>Total Budget:</strong> $" 
-            + String.format("%.2f", user.getBudget()) + "</p>"
-            + "<p><strong>Total Spent:</strong> $" + budgetReport.get("totalSpent") + "</p>"
-            + "<p><strong>Remaining:</strong> $" + budgetReport.get("remaining") + "</p>"
-            + "<p><strong>Weekly Spending:</strong> $" + weeklyTotal + "</p>"
-            
-            + "<h2>Update Budget</h2>"
-            + "<form action='/users/" + userId + "/update-budget' method='post'>"
-            + "New Budget: <input type='number' name='budget' step='0.01' value='" 
-            + user.getBudget() + "' required><br><br>"
-            + "<input type='submit' value='Update Budget'>"
-            + "</form>"
-            
-            + "<h2>Quick Reports</h2>"
-            + "<ul>"
-            + "<li><a href='/users/" + userId + "/weekly-summary'>Weekly Summary</a></li>"
-            + "<li><a href='/users/" + userId + "/monthly-summary'>Monthly Summary</a></li>"
-            + "<li><a href='/users/" + userId + "/budget-report'>Budget Report (JSON)</a></li>"
-            + "</ul>"
-            + "</body></html>";
+    final User user = mockApiService.getUser(userId).get();
+    final Map<String, Object> budgetReport = mockApiService.getBudgetReport(userId);
+    final String weeklyTotal = String.format(FMT_2F, mockApiService.totalLast7Days(userId));
+
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Budget page loaded successfully for user: " + user.getUsername());
+    }
+    return HTML_OPEN
+        + "<h1>Budget Management - " + user.getUsername() + "</h1>"
+        + "<h2>Current Budget</h2>"
+        + "<p><strong>Total Budget:</strong> $" + String.format(FMT_2F, user.getBudget()) + P_CLOSE
+        + "<p><strong>Total Spent:</strong> $" + budgetReport.get("totalSpent") + P_CLOSE
+        + "<p><strong>Remaining:</strong> $" + budgetReport.get("remaining") + P_CLOSE
+        + "<p><strong>Weekly Spending:</strong> $" + weeklyTotal + P_CLOSE
+        + "<h2>Update Budget</h2>"
+        + "<form action='/users/" + userId + "/update-budget' method='post'>"
+        + "New Budget: <input type='number' name='budget' step='0.01' value='"
+        + user.getBudget() + "'" + REQUIRED
+        + "<input type='submit' value='Update Budget'>"
+        + FORM_CLOSE
+        + "<h2>Quick Reports</h2>"
+        + "<ul>"
+        + "<li><a href='/users/" + userId + "/weekly-summary'>Weekly Summary</a></li>"
+        + "<li><a href='/users/" + userId + "/monthly-summary'>Monthly Summary</a></li>"
+        + "<li><a href='/users/" + userId + "/budget-report'>Budget Report (JSON)</a></li>"
+        + "</ul>"
+        + HTML_CLOSE;
   }
 
   /**
-   * Updates a user's budget using a JSON payload.
+   * Updates budget via JSON.
    *
-   * @param userId       A {@code UUID} representing the user whose budget is being updated.
-   * @param budgetUpdate A {@code Map<String, Object>} containing the new budget values.
-   *
-   * @return A {@code ResponseEntity} containing the updated budget report if successful.
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId user id
+   * @param budgetUpdate map with fields
+   * @return budget report
    */
-  @PutMapping(value = "/users/{userId}/budget",
-              consumes = MediaType.APPLICATION_JSON_VALUE,
-              produces = MediaType.APPLICATION_JSON_VALUE)
+  @PutMapping(
+      value = "/users/{userId}/budget",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Map<String, Object>> updateBudgetJson(
-          @PathVariable UUID userId,
-          @RequestBody Map<String, Object> budgetUpdate) {
+      @PathVariable final UUID userId,
+      @RequestBody final Map<String, Object> budgetUpdate) {
 
-    LOGGER.info("PUT /users/" + userId + "/budget called - Updating budget via JSON.");
-
-    if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot update budget - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("PUT /users/" + userId + "/budget called - Updating budget via JSON.");
     }
+    if (!mockApiService.getUser(userId).isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot update budget - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
+
     mockApiService.setBudgets(userId, budgetUpdate);
-    LOGGER.info("Budget updated successfully for user " + userId + " with data: " + budgetUpdate);
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Budget updated successfully for user " + userId + " with data: " + budgetUpdate);
+    }
     return ResponseEntity.ok(mockApiService.getBudgetReport(userId));
   }
 
   /**
-   * Updates a user's budget via HTML form submission.
+   * Updates budget via form; returns HTML.
    *
-   * @param userId A {@code UUID} representing the user whose budget is being updated.
-   * @param budget A {@code double} representing the new budget amount.
-   *
-   * @return A {@code ResponseEntity} containing an HTML confirmation message with HTTP 200 OK
-   *         if successful
-   * @throws NoSuchElementException if the user does not exist.
+   * @param userId user id
+   * @param budget new budget
+   * @return HTML confirmation
    */
-  @PostMapping(value = "/users/{userId}/update-budget", 
-                consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
-                produces = MediaType.TEXT_HTML_VALUE)
+  @PostMapping(
+      value = "/users/{userId}/update-budget",
+      consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+      produces = MediaType.TEXT_HTML_VALUE)
   public ResponseEntity<String> updateBudget(
-          @PathVariable UUID userId,
-          @RequestParam double budget) {
+      @PathVariable final UUID userId,
+      @RequestParam final double budget) {
 
-    LOGGER.info("POST /users/" + userId + "/update-budget called - Updating budget via HTML form.");
-
-    if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot update budget via form - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(POST_USERS + userId + "/update-budget called - Updating budget via HTML form.");
     }
-    
+    if (!mockApiService.getUser(userId).isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot update budget via form - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
+
     mockApiService.setBudgets(userId, Map.of("budget", budget));
-    LOGGER.info("Budget successfully updated via form for user " + userId + " to $" + budget);
-    
-    String html = "<html><body>"
-            + "<h2>Budget Updated Successfully!</h2>"
-            + "<p><strong>New Budget:</strong> $" 
-            + String.format("%.2f", budget) + "</p>"
-            + "</body></html>";
-    
-    return ResponseEntity.ok().body(html);
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Budget successfully updated via form for user " + userId + " to $" + budget);
+    }
+
+    final String html = HTML_OPEN
+        + H2_OPEN + "Budget Updated Successfully!" + H2_CLOSE
+        + "<p><strong>New Budget:</strong> $" + String.format(FMT_2F, budget) + P_CLOSE
+        + HTML_CLOSE;
+
+    return ResponseEntity.ok(html);
   }
 
   /**
-   * Displays a weekly spending summary for a specific user.
+   * Weekly summary page.
    *
-   * @param userId A {@code UUID} representing the user whose weekly summary is requested.
-   *
-   * @return A raw HTML string containing a table of transactions and spending totals
-   *         with an HTTP 200 OK response if the user exists.
-   * @throws NoSuchElementException if the user with the given {@code userId} does not exist.
+   * @param userId user id
+   * @return HTML page
    */
   @GetMapping(value = "/users/{userId}/weekly-summary", produces = MediaType.TEXT_HTML_VALUE)
-  public String weeklySummary(@PathVariable UUID userId) {
-
-    LOGGER.info("GET /users/" + userId + "/weekly-summary called - Generating weekly summary.");
-
-    if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot generate weekly summary - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+  public String weeklySummary(@PathVariable final UUID userId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(GET_USERS + userId + "/weekly-summary called - Generating weekly summary.");
     }
-    
-    User user = mockApiService.getUser(userId).get();
-    List<Transaction> weeklyTransactions = mockApiService.weeklySummary(userId);
-    double weeklyTotal = mockApiService.totalLast7Days(userId);
+    if (!mockApiService.getUser(userId).isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot generate weekly summary - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
 
-    LOGGER.info("Weekly summary generated for user " + user.getUsername()
-        + " with " + weeklyTransactions.size() + " transactions.");
+    final User user = mockApiService.getUser(userId).get();
+    final List<Transaction> wkTransactions = mockApiService.weeklySummary(userId);
+    final double weeklyTotal = mockApiService.totalLast7Days(userId);
 
-    StringBuilder transactionsHtml = new StringBuilder();
-    if (weeklyTransactions.isEmpty()) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Weekly summary generated for user " + user.getUsername()
+          + " with " + wkTransactions.size() + " transactions.");
+    }
+
+    final StringBuilder transactionsHtml =
+        new StringBuilder(wkTransactions.isEmpty() ? 64 : 256);
+
+    if (wkTransactions.isEmpty()) {
       transactionsHtml.append("<p>No transactions in the last 7 days.</p>");
     } else {
-      transactionsHtml.append("<table border='1' style='"
-          + "border-collapse: collapse; width: 100%;'>");
-      transactionsHtml.append("<tr><th>Description</th>" 
-          + "<th>Amount</th><th>Category</th><th>Date</th></tr>");
-      for (Transaction tx : weeklyTransactions) {
-        transactionsHtml.append("<tr>")
-            .append("<td>").append(tx.getDescription()).append("</td>")
-            .append("<td>$").append(String.format("%.2f", 
-              tx.getAmount())).append("</td>")
-            .append("<td>").append(tx.getCategory()).append("</td>")
-            .append("<td>").append(tx.getDate()).append("</td>")
-            .append("</tr>");
+      transactionsHtml.append(
+          "<table border='1' style='border-collapse: collapse; width: 100%;'>"
+          + "<tr><th>Description</th><th>Amount</th><th>Category</th><th>Date</th></tr>");
+      for (final Transaction transaction : wkTransactions) {
+        transactionsHtml.append("<tr><td>")
+            .append(transaction.getDescription())
+            .append("</td><td>$")
+            .append(String.format(FMT_2F, transaction.getAmount()))
+            .append("</td><td>")
+            .append(transaction.getCategory())
+            .append("</td><td>")
+            .append(transaction.getDate())
+            .append("</td></tr>");
       }
       transactionsHtml.append("</table>");
     }
-    return "<html><body>"
-            + "<h1>Weekly Summary - " + user.getUsername() + "</h1>"
-            + "<p><strong>Total Spent Last 7 Days:</strong> $" 
-            + String.format("%.2f", weeklyTotal) + "</p>"
-            + "<h2>Recent Transactions</h2>"
-            + transactionsHtml.toString()
-            + "</body></html>";
+
+    return HTML_OPEN
+        + "<h1>Weekly Summary - " + user.getUsername() + "</h1>"
+        + "<p><strong>Total Spent Last 7 Days:</strong> $" + String.format(FMT_2F, weeklyTotal)
+        + P_CLOSE
+        + "<h2>Recent Transactions</h2>"
+        + transactionsHtml
+        + HTML_CLOSE;
   }
 
   /**
-   * Displays a monthly spending summary for a specific user.
+   * Monthly summary page.
    *
-   * @param userId A {@code UUID} representing the user whose monthly summary is requested.
-   *
-   * @return A raw HTML string containing the monthly summary report
-   *         with an HTTP 200 OK response if the user exists.
-   * @throws NoSuchElementException if the user with the given {@code userId} does not exist,
+   * @param userId user id
+   * @return HTML page
    */
   @GetMapping(value = "/users/{userId}/monthly-summary", produces = MediaType.TEXT_HTML_VALUE)
-  public String monthlySummary(@PathVariable UUID userId) {
-
-    LOGGER.info("GET /users/" + userId + "/monthly-summary called - Generating monthly summary.");
-
-    if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot generate monthly summary - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+  public String monthlySummary(@PathVariable final UUID userId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(GET_USERS + userId + "/monthly-summary called - Generating monthly summary.");
     }
-    
-    String summary = mockApiService.getMonthlySummary(userId);
-    LOGGER.info("Monthly summary generated successfully for user " + userId);
-    return "<html><body>"
-            + "<h1>Monthly Summary</h1>"
-            + "<pre>" + summary + "</pre>"
-            + "</body></html>";
+    if (!mockApiService.getUser(userId).isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot generate monthly summary - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+    }
+
+    final String summary = mockApiService.getMonthlySummary(userId);
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Monthly summary generated successfully for user " + userId);
+    }
+    return HTML_OPEN
+        + "<h1>Monthly Summary</h1>"
+        + "<pre>" + summary + "</pre>"
+        + HTML_CLOSE;
   }
 
   /**
-   * Returns a JSON-formatted budget report for a specific user.
+   * Budget report JSON.
    *
-   * @param userId A {@code UUID} representing the user whose budget report is requested.
-   *
-   * @return A {@code ResponseEntity} containing a JSON budget report with an HTTP 200 OK response
-   *         if the user exists.
-   * @throws NoSuchElementException if the user with the given {@code userId} does not exist.
+   * @param userId user id
+   * @return JSON budget report
    */
-  @GetMapping(value = "/users/{userId}/budget-report", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<Map<String, Object>> budgetReport(@PathVariable UUID userId) {
-
-    LOGGER.info("GET /users/"
-        + userId + "/budget-report called - Retrieving budget report (JSON).");
-
+  @GetMapping(
+      value = "/users/{userId}/budget-report",
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<Map<String, Object>> budgetReport(@PathVariable final UUID userId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info(GET_USERS + userId + "/budget-report called - Retrieving budget report (JSON).");
+    }
     if (!mockApiService.getUser(userId).isPresent()) {
-      LOGGER.warning("Cannot retrieve budget report - user not found: " + userId);
-      throw new NoSuchElementException("User " + userId + " not found");
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot retrieve budget report - user not found: " + userId);
+      }
+      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
 
-    LOGGER.info("Budget report retrieved successfully for user " + userId);
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Budget report retrieved successfully for user " + userId);
+    }
     return ResponseEntity.ok(mockApiService.getBudgetReport(userId));
   }
 
@@ -902,32 +1038,28 @@ public class RouteController {
   // ---------------------------------------------------------------------------
 
   /**
-   * Handles NoSuchElementException thrown when a requested resource
-   * (such as a user or transaction) does not exist.
+   * 404 handler.
    *
-   * @param ex The {@code NoSuchElementException} that was thrown.
-   *
-   * @return A {@code ResponseEntity} containing a JSON object with an error message
-   *         and an HTTP 404 Not Found status.
+   * @param exception exception
+   * @return JSON error
    */
   @ExceptionHandler(NoSuchElementException.class)
-  public ResponseEntity<Map<String, String>> handleNotFound(NoSuchElementException ex) {
+  public ResponseEntity<Map<String, String>> handleNotFound(
+        final NoSuchElementException exception) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(Map.of("error", ex.getMessage()));
+        .body(Map.of("error", exception.getMessage()));
   }
 
   /**
-   * Handles IllegalArgumentException thrown when a request contains invalid data
-   * or parameters.
+   * 400 handler.
    *
-   * @param ex The {@code IllegalArgumentException} that was thrown.
-   *
-   * @return A {@code ResponseEntity} containing a JSON object with an error message
-   *         and an HTTP 400 Bad Request status.
+   * @param exception exception
+   * @return JSON error
    */
   @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<Map<String, String>> handleBadRequest(IllegalArgumentException ex) {
+  public ResponseEntity<Map<String, String>> handleBadRequest(
+        final IllegalArgumentException exception) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(Map.of("error", ex.getMessage()));
+        .body(Map.of("error", exception.getMessage()));
   }
 }

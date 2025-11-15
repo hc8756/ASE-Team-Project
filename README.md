@@ -142,6 +142,38 @@ mvn checkstyle:checkstyle
 
 The report is accessible at `target/site/checkstyle.html`. A copy of a clean report `checkstyle.html` is also included in the root of this repository.
 
+
+## Static Analysis with PMD
+
+This project uses PMD for static code analysis to enforce consistent quality and style. 
+
+1. Ensure `pom.xml` in the root directory is updated.
+2. Ensure `all-java.xml` is present in `/src/main/resources`
+3. Run PMD:
+```bash
+mvn clean site
+``` 
+The reports will be available at `/target/site/pmd.html` and `/target/site/cpd.html`
+
+A copy of a "before" PMD report and a clean "after" PMD report are available in the root directory. The CPD reports were always clean, and a copy is also included in the root directory.
+
+In several cases, certain rules were intentionally suppressed because their recommendations conflict with established design decisions, necessary framework patterns, or clarity/readability requirements. Below is a summary of the suppressed warnings and the rationale behind each:
+
+ **Rule** | **Scope (File/Class)** | **Reason for Suppression** |
+|-----------|------------------------|-----------------------------|
+| `OnlyOneReturn` | `RouteController`, `MockApiService`, `Transaction` | Multiple return statements are used intentionally for clearer control flow and early error handling, especially in REST endpoints. Enforcing a single return would reduce readability. |
+| `AvoidCatchingGenericException` | `RouteController`, `MockApiService` | Generic exceptions (e.g., `RuntimeException`) are caught at well-defined boundaries to ensure proper logging and consistent API responses. |
+| `CyclomaticComplexity`, `CognitiveComplexity` | `RouteController`, `Transaction` | Some methods inherently require multiple conditional branches for validation or comparison logic. Refactoring would reduce clarity without simplifying logic. |
+| `TooManyMethods` | `RouteController`, `MockApiService` | These classes act as centralized controller/service entry points. Splitting them would fragment logically related functionality. |
+| `CommentSize` | `RouteController`, `Transaction` | Large comments were preserved to provide clear documentation and educational explanations of logic flow. |
+| `DataClass` | `User`, `Transaction` | Both are intentionally implemented as plain data holder classes (POJOs) with standard getters/setters, consistent with Java domain modeling best practices. |
+| `ShortClassName` | `User` | The name `User` is concise, standard, and domain-appropriate. Extending it would reduce clarity. |
+| `ConstructorCallsOverridableMethod` | `Transaction` | The constructor calls `setDescription()` for input normalization. The method has no side effects and is effectively safe to call. |
+| `NullAssignment` | `Transaction` | Null assignments used for optional initialization (e.g., timestamps) are controlled and do not introduce unsafe behavior. |
+| `OnlyOneReturn` (repeated instances) | Multiple classes | Each suppression corresponds to methods where early returns improve clarity and maintainability. |
+
+All PMD suppressions are deliberate, documented, and localized to specific cases where strict compliance would hinder clarity or architectural intent.
+
 ## Documentation and Organization
 
 All source files are documented using Javadoc and inline comments explaining implementation details where relevant.
