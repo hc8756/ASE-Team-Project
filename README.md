@@ -10,7 +10,7 @@ This project implements a Ledger Service that allows users to:
 
 It is built with Spring Boot (Java), uses a Cloud SQL database, and exposes RESTful APIs for client interaction.
 
-## Build and Run Instructions
+## Build and Run Instructions (Local)
 
 1. Prerequisites
 - Java 17+
@@ -34,6 +34,25 @@ mvn compile
 mvn spring-boot:run
 ```
 Once started, navigate to http://127.0.0.1:8080 or http://localhost:8080/ in your web browser.
+
+## GCP Cloudshell Instructions
+
+This project is also hosted as a Cloud Run service (https://budget-manager-228477659783.us-east1.run.app). You will need IAM permissions to run these commands from the GCP Cloud Shell.  
+- Go to [Google Cloud Console](https://console.cloud.google.com/welcome/new?authuser=1&project=ase-group-project-474618)
+- Open the Cloud Shell by clicking the >_ icon on the top right
+- Run ```GCP_TOKEN=$(gcloud auth print-identity-token)```
+- Run curl commands by adding your desired endpoint to the end of the Cloud Run link and putting your GCP_TOKEN in the header.  
+This is an example of the create call modified for GCP:  
+```
+curl -X POST "https://budget-manager-228477659783.us-east1.run.app/users" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $GCP_TOKEN" \
+  -d '{
+    "username": "testuser",
+    "email": "test@example.com",
+    "budget": 1000.00
+  }'
+```
 
 ## API Documentation
 
