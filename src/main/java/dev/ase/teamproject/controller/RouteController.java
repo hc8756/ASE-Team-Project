@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -188,11 +189,33 @@ public class RouteController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<User> createUserJson(@RequestBody final User user) {
-    if (LOGGER.isLoggable(Level.INFO)) {
-      LOGGER.info("POST /users called - Creating new user via JSON: " + user.getUsername());
+    try {
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("POST /users called - Creating new user via JSON: " + user.getUsername());
+      }
+      if (user.getUsername() == null) {
+        throw new IllegalArgumentException("Username field is required");
+      }
+      if (user.getEmail() == null) {
+        throw new IllegalArgumentException("Email field is required");
+      }
+      final User saved = mockApiService.addUser(user);
+      return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    } catch (DataIntegrityViolationException e) {
+      String errorMessage = e.getMostSpecificCause().getMessage();
+      if (errorMessage.contains("users_email_key")) {
+        LOGGER.warning("Duplicate email violation: " + user.getEmail());
+        throw new IllegalArgumentException("Email already exists: " + user.getEmail());
+      } else if (errorMessage.contains("users_username_key")) {
+        LOGGER.warning("Duplicate username violation: " + user.getUsername());
+        throw new IllegalArgumentException("Username already exists: " + user.getUsername());
+      } else {
+        LOGGER.warning("Data integrity violation: " + errorMessage);
+        throw new IllegalArgumentException("Data integrity violation");
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to create user", e);
     }
-    final User saved = mockApiService.addUser(user);
-    return ResponseEntity.status(HttpStatus.CREATED).body(saved);
   }
 
   /**
@@ -211,30 +234,43 @@ public class RouteController {
       @RequestParam final String username,
       @RequestParam final String email,
       @RequestParam final double budget) {
-
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info("POST /users/form called - Creating user via form: " + username);
     }
-    final User user = new User();
-    user.setUsername(username);
-    user.setEmail(email);
-    user.setBudget(budget);
+    // Check if username and email already exist
+    if (mockApiService.isUsernameExists(username, null)) {
+      final String html = HTML_OPEN
+          + H2_OPEN + "User Creation Failed" + H2_CLOSE
+          + "<p>Username already in use</p>"
+          + HTML_CLOSE;
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(html);
+    } else if (mockApiService.isEmailExists(email, null)) {
+      final String html = HTML_OPEN
+          + H2_OPEN + "User Creation Failed" + H2_CLOSE
+          + "<p>User email already in use</p>"
+          + HTML_CLOSE;
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(html);
+    } else {
+      final User user = new User();
+      user.setUsername(username);
+      user.setEmail(email);
+      user.setBudget(budget);
 
-    final User saved = mockApiService.addUser(user);
+      final User saved = mockApiService.addUser(user);
 
-    if (LOGGER.isLoggable(Level.INFO)) {
-      LOGGER.info("User created successfully via form. ID: " + saved.getUserId());
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("User created successfully via form. ID: " + saved.getUserId());
+      }
+
+      final String html = HTML_OPEN
+          + H2_OPEN + "User Created Successfully!" + H2_CLOSE
+          + "<p><strong>User ID:</strong> " + saved.getUserId() + P_CLOSE
+          + "<p><strong>Username:</strong> " + saved.getUsername() + P_CLOSE
+          + "<p><strong>Email:</strong> " + saved.getEmail() + P_CLOSE
+          + "<p><strong>Budget:</strong> $" + String.format(FMT_2F, saved.getBudget()) + P_CLOSE
+          + HTML_CLOSE;
+      return ResponseEntity.status(HttpStatus.CREATED).body(html);
     }
-
-    final String html = HTML_OPEN
-        + H2_OPEN + "User Created Successfully!" + H2_CLOSE
-        + "<p><strong>User ID:</strong> " + saved.getUserId() + P_CLOSE
-        + "<p><strong>Username:</strong> " + saved.getUsername() + P_CLOSE
-        + "<p><strong>Email:</strong> " + saved.getEmail() + P_CLOSE
-        + "<p><strong>Budget:</strong> $" + String.format(FMT_2F, saved.getBudget()) + P_CLOSE
-        + HTML_CLOSE;
-
-    return ResponseEntity.status(HttpStatus.CREATED).body(html);
   }
 
   /**
@@ -264,6 +300,16 @@ public class RouteController {
       throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
 
+    // Check if username and email already exist
+    if (mockApiService.isUsernameExists(userUpdates.getUsername(), userId)) {
+      LOGGER.warning("Duplicate username violation: " + userUpdates.getUsername());
+      throw new IllegalArgumentException("Username already exists: " + userUpdates.getUsername());
+    }
+    if (mockApiService.isEmailExists(userUpdates.getEmail(), userId)) {
+      LOGGER.warning("Duplicate email violation: " + userUpdates.getEmail());
+      throw new IllegalArgumentException("Email already exists: " + userUpdates.getEmail());
+    }
+
     final User existing = existingUser.get();
 
     // Mutate the provided instance instead of creating a new one
@@ -285,7 +331,6 @@ public class RouteController {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info("User updated successfully. ID: " + userId);
     }
-
     return ResponseEntity.ok(saved);
   }
 
@@ -311,35 +356,49 @@ public class RouteController {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info(POST_USERS + userId + "/update-form called - Updating user via form.");
     }
-    final Optional<User> existingUser = mockApiService.getUser(userId);
-    if (!existingUser.isPresent()) {
-      if (LOGGER.isLoggable(Level.WARNING)) {
-        LOGGER.warning("Cannot update form user - not found: " + userId);
+    if (mockApiService.isUsernameExists(username, userId)) {
+      final String html = HTML_OPEN
+          + H2_OPEN + "User Creation Failed" + H2_CLOSE
+          + "<p>Username already in use</p>"
+          + HTML_CLOSE;
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(html);
+    } else if (mockApiService.isEmailExists(email, userId)) {
+      final String html = HTML_OPEN
+          + H2_OPEN + "User Creation Failed" + H2_CLOSE
+          + "<p>User email already in use</p>"
+          + HTML_CLOSE;
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(html);
+    } else {
+      final Optional<User> existingUser = mockApiService.getUser(userId);
+      if (!existingUser.isPresent()) {
+        if (LOGGER.isLoggable(Level.WARNING)) {
+          LOGGER.warning("Cannot update form user - not found: " + userId);
+        }
+        throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
       }
-      throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
+
+      final User user = new User();
+      user.setUserId(userId);
+      user.setUsername(username);
+      user.setEmail(email);
+      user.setBudget(budget);
+
+      mockApiService.deleteUser(userId);
+      final User saved = mockApiService.addUser(user);
+
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("User updated successfully via form. ID: " + userId);
+      }
+
+      final String html = HTML_OPEN
+          + H2_OPEN + "User Updated Successfully!" + H2_CLOSE
+          + "<p><strong>User ID:</strong> " + saved.getUserId() + P_CLOSE
+          + "<p><strong>Username:</strong> " + saved.getUsername() + P_CLOSE
+          + "<p><strong>Email:</strong> " + saved.getEmail() + P_CLOSE
+          + "<p><strong>Budget:</strong> $" + String.format(FMT_2F, saved.getBudget()) + P_CLOSE
+          + HTML_CLOSE;
+      return ResponseEntity.ok(html);
     }
-
-    final User user = new User();
-    user.setUserId(userId);
-    user.setUsername(username);
-    user.setEmail(email);
-    user.setBudget(budget);
-
-    mockApiService.deleteUser(userId);
-    final User saved = mockApiService.addUser(user);
-
-    if (LOGGER.isLoggable(Level.INFO)) {
-      LOGGER.info("User updated successfully via form. ID: " + userId);
-    }
-
-    final String html = HTML_OPEN
-        + H2_OPEN + "User Updated Successfully!" + H2_CLOSE
-        + "<p><strong>User ID:</strong> " + saved.getUserId() + P_CLOSE
-        + "<p><strong>Username:</strong> " + saved.getUsername() + P_CLOSE
-        + "<p><strong>Email:</strong> " + saved.getEmail() + P_CLOSE
-        + "<p><strong>Budget:</strong> $" + String.format(FMT_2F, saved.getBudget()) + P_CLOSE
-        + HTML_CLOSE;
-    return ResponseEntity.ok(html);
   }
 
   /**
@@ -528,7 +587,6 @@ public class RouteController {
   public ResponseEntity<Transaction> createTransactionJson(
       @PathVariable final UUID userId,
       @RequestBody final Transaction transaction) {
-
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info(POST_USERS + userId
           + "/transactions called - Creating new transaction via JSON.");
@@ -539,15 +597,19 @@ public class RouteController {
       }
       throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
+    try {
+      transaction.setUserId(userId);
+      final Transaction saved = mockApiService.addTransaction(transaction);
 
-    transaction.setUserId(userId);
-    final Transaction saved = mockApiService.addTransaction(transaction);
-
-    if (LOGGER.isLoggable(Level.INFO)) {
-      LOGGER.info("Transaction created successfully for user "
-          + userId + ": " + saved.getTransactionId());
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("Transaction created successfully for user "
+            + userId + ": " + saved.getTransactionId());
+      }
+      return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    } catch (Exception e) {
+      LOGGER.warning("Transaction creation failed: " + e.getMessage());
+      throw e;
     }
-    return ResponseEntity.status(HttpStatus.CREATED).body(saved);
   }
 
   /**
@@ -644,19 +706,17 @@ public class RouteController {
       throw new NoSuchElementException(
           TX_NF_PREFIX + transactionId + NF_FOR_USER + userId);
     }
-
-    final Optional<Transaction> updated = mockApiService.updateTransaction(transactionId, updates);
-    if (!updated.isPresent()) {
-      if (LOGGER.isLoggable(Level.WARNING)) {
-        LOGGER.warning("Transaction update failed: " + transactionId);
+    try {
+      final Optional<Transaction> updated = 
+          mockApiService.updateTransaction(transactionId, updates);
+      if (LOGGER.isLoggable(Level.INFO)) {
+        LOGGER.info("Transaction updated successfully: " + transactionId + " for user " + userId);
       }
-      throw new NoSuchElementException(TX_NF_PREFIX + transactionId + NF_SUFFIX);
+      return ResponseEntity.ok(updated.get());
+    } catch (Exception e) {
+      LOGGER.warning("Transaction creation failed: " + e.getMessage());
+      throw e;
     }
-
-    if (LOGGER.isLoggable(Level.INFO)) {
-      LOGGER.info("Transaction updated successfully: " + transactionId + " for user " + userId);
-    }
-    return ResponseEntity.ok(updated.get());
   }
 
   /**
@@ -1034,7 +1094,7 @@ public class RouteController {
   }
 
   // ---------------------------------------------------------------------------
-  // Exception handlers
+  // Exception handlers & helper functions
   // ---------------------------------------------------------------------------
 
   /**
