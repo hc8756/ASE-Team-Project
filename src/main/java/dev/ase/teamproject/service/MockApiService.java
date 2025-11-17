@@ -3,6 +3,7 @@ package dev.ase.teamproject.service;
 import dev.ase.teamproject.model.Transaction;
 import dev.ase.teamproject.model.User;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -179,6 +180,20 @@ public class MockApiService {
    */
   public Transaction addTransaction(final Transaction transaction) {
     try {
+      // Validate required fields before database operation
+      if (transaction.getUserId() == null) {
+        throw new IllegalArgumentException("User ID is required");
+      }
+      if (transaction.getDescription() == null || transaction.getDescription().trim().isEmpty()) {
+        throw new IllegalArgumentException("Description is required");
+      }
+      if (transaction.getAmount() <= 0) {
+        throw new IllegalArgumentException("Amount must be greater than 0");
+      }
+      if (transaction.getCategory() == null || transaction.getCategory().trim().isEmpty()) {
+        throw new IllegalArgumentException("Category is required");
+      }
+
       final String sql = "INSERT INTO transactions (user_id, description, amount, category) " 
           + "VALUES (?, ?, ?, ?::transaction_category) "
           + "RETURNING transaction_id, created_time, created_date";
@@ -194,7 +209,21 @@ public class MockApiService {
           transaction.getCategory());
       return savedTransaction != null ? savedTransaction : transaction;
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to create transaction: " + e.getMessage(), e);
+      // Provide more specific error messages based on the exception type
+      if (e instanceof IllegalArgumentException) {
+        throw e; // Re-throw our validation errors as-is
+      } else if (e.getMessage().contains("foreign key constraint")) {
+        throw new IllegalArgumentException("Invalid user ID: user does not exist");
+      } else if (e.getMessage().contains("transaction_category") 
+          || e.getMessage().contains("enum")) {
+        throw new IllegalArgumentException("Invalid category. Valid categories are: FOOD,"
+            + "TRANSPORTATION, ENTERTAINMENT, UTILITIES, SHOPPING," 
+            + "HEALTHCARE, TRAVEL, EDUCATION, OTHER");
+      } else if (e.getMessage().contains("numeric") || e.getMessage().contains("amount")) {
+        throw new IllegalArgumentException("Invalid amount format: must be a valid number");
+      } else {
+        throw new IllegalStateException("Failed to create transaction: " + e.getMessage(), e);
+      }
     }
   }
 
@@ -226,34 +255,99 @@ public class MockApiService {
         final UUID transactionId, final Map<String, Object> updates) {
     final Optional<Transaction> existing = getTransaction(transactionId);
     if (!existing.isPresent()) {
-      return Optional.empty();
+      throw new IllegalArgumentException("Transaction not found with ID: " + transactionId);
     }
+    
     final Transaction transaction = existing.get();
-    if (updates.containsKey("description")) {
-      transaction.setDescription((String) updates.get("description"));
-    }
-    if (updates.containsKey("amount")) {
-      final Object amount = updates.get("amount");
-      if (amount instanceof Number) {
-        transaction.setAmount(((Number) amount).doubleValue());
-      } else if (amount instanceof String) {
-        transaction.setAmount(Double.parseDouble((String) amount));
+    
+    try {
+      // Validate and apply updates
+      if (updates.containsKey("description")) {
+        final Object description = updates.get("description");
+        if (description instanceof String) {
+          final String desc = (String) description;
+          if (desc.trim().isEmpty()) {
+            throw new IllegalArgumentException("Description cannot be empty");
+          }
+          transaction.setDescription(desc);
+        } else {
+          throw new IllegalArgumentException("Description must be a string");
+        }
+      }
+      
+      if (updates.containsKey("amount")) {
+        final Object amount = updates.get("amount");
+        double newAmount;
+        if (amount instanceof Number) {
+          newAmount = ((Number) amount).doubleValue();
+        } else if (amount instanceof String) {
+          try {
+            newAmount = Double.parseDouble((String) amount);
+          } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Amount must be a valid number");
+          }
+        } else {
+          throw new IllegalArgumentException("Amount must be a number");
+        }
+        
+        if (newAmount <= 0) {
+          throw new IllegalArgumentException("Amount must be greater than 0");
+        }
+        transaction.setAmount(newAmount);
+      }
+      
+      if (updates.containsKey("category")) {
+        final Object category = updates.get("category");
+        if (category instanceof String) {
+          final String cat = (String) category;
+          if (cat.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category cannot be empty");
+          }
+          // Validate category against known values
+          final List<String> validCategories = Arrays.asList(
+              "FOOD", "TRANSPORTATION", "ENTERTAINMENT", "UTILITIES", 
+              "SHOPPING", "HEALTHCARE", "TRAVEL", "EDUCATION", "OTHER"
+          );
+          if (!validCategories.contains(cat.toUpperCase())) {
+            throw new IllegalArgumentException("Invalid category: " + cat
+                + ". Valid categories are: " + String.join(", ", validCategories));
+          }
+          transaction.setCategory(cat);
+        } else {
+          throw new IllegalArgumentException("Category must be a string");
+        }
+      }
+      
+      // Check if any valid updates were provided
+      if (updates.isEmpty()) {
+        throw new IllegalArgumentException("No valid fields provided for update");
+      }
+      
+      final String sql = "UPDATE transactions SET description = ?, amount = ?, " 
+          + "category = ?::transaction_category WHERE transaction_id = ?";
+      final int rowsAffected = jdbcTemplate.update(sql,
+          transaction.getDescription(),
+          transaction.getAmount(),
+          transaction.getCategory(),
+          transactionId);
+          
+      if (rowsAffected > 0) {
+        return getTransaction(transactionId);
+      } else {
+        throw new IllegalStateException("Failed to update transaction: no rows affected");
+      }
+    } catch (Exception e) {
+      if (e instanceof IllegalArgumentException) {
+        throw e; // Re-throw our validation errors
+      } else if (e.getMessage().contains("transaction_category") 
+          || e.getMessage().contains("enum")) {
+        throw new IllegalArgumentException("Invalid category. Valid categories are: "
+        + "FOOD, TRANSPORTATION, ENTERTAINMENT, UTILITIES, SHOPPING, " 
+        + "HEALTHCARE, TRAVEL, EDUCATION, OTHER");
+      } else {
+        throw new IllegalStateException("Failed to update transaction: " + e.getMessage(), e);
       }
     }
-    if (updates.containsKey("category")) {
-      transaction.setCategory((String) updates.get("category"));
-    }
-    final String sql = "UPDATE transactions SET description = ?, amount = ?, " 
-        + "category = ?::transaction_category WHERE transaction_id = ?";
-    final int rowsAffected = jdbcTemplate.update(sql,
-        transaction.getDescription(),
-        transaction.getAmount(),
-        transaction.getCategory(),
-        transactionId);
-    if (rowsAffected > 0) {
-      return getTransaction(transactionId);
-    }
-    return Optional.empty();
   }
 
   /**
@@ -465,6 +559,49 @@ public class MockApiService {
       return result != null ? result : 0.0;
     } catch (Exception e) {
       return 0.0;
+    }
+  }
+
+  /**
+   * Returns if username is already in database.
+   *
+   * @param username to check for
+   * @param excludeUserId on id to exclude in search, set to null of none
+   * @return boolean that shows whether username is in use
+   */
+  public boolean isUsernameExists(final String username, final UUID excludeUserId) {
+    if (excludeUserId == null) {
+      // Check against all users
+      final String sql = "SELECT COUNT(*) FROM users WHERE username = ?";
+      final Integer count = jdbcTemplate.queryForObject(sql, Integer.class, username);
+      return count != null && count > 0;
+    } else {
+      // Check against other users only
+      final String sql = "SELECT COUNT(*) FROM users WHERE username = ? AND user_id != ?";
+      final Integer count = jdbcTemplate.queryForObject(sql, 
+          Integer.class, username, excludeUserId);
+      return count != null && count > 0;
+    }
+  }
+
+  /**
+  * Returns if email is already in database.
+  *
+  * @param email to check for
+  * @param excludeUserId on id to exclude in search, set to null of none
+  * @return boolean that shows whether email is in use
+  */
+  public boolean isEmailExists(final String email, final UUID excludeUserId) {
+    if (excludeUserId == null) {
+      // Check against all users
+      final String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
+      final Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
+      return count != null && count > 0;
+    } else {
+      // Check against other users only
+      final String sql = "SELECT COUNT(*) FROM users WHERE email = ? AND user_id != ?";
+      final Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email, excludeUserId);
+      return count != null && count > 0;
     }
   }
 }
