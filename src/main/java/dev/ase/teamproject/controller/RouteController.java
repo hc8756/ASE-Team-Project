@@ -3,6 +3,8 @@ package dev.ase.teamproject.controller;
 import dev.ase.teamproject.model.Transaction;
 import dev.ase.teamproject.model.User;
 import dev.ase.teamproject.service.MockApiService;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -981,13 +983,13 @@ public class RouteController {
   }
 
   /**
-   * Weekly summary page.
+   * Weekly summary.
    *
    * @param userId user id
-   * @return HTML page
+   * @return JSON weekly summary
    */
-  @GetMapping(value = "/users/{userId}/weekly-summary", produces = MediaType.TEXT_HTML_VALUE)
-  public String weeklySummary(@PathVariable final UUID userId) {
+  @GetMapping(value = "/users/{userId}/weekly-summary", produces = MediaType.APPLICATION_JSON_VALUE)
+  public Map<String, Object> weeklySummary(@PathVariable final UUID userId) {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info(GET_USERS + userId + "/weekly-summary called - Generating weekly summary.");
     }
@@ -1007,52 +1009,28 @@ public class RouteController {
           + " with " + wkTransactions.size() + " transactions.");
     }
 
-    final StringBuilder transactionsHtml =
-        new StringBuilder(wkTransactions.isEmpty() ? 64 : 256);
-
-    if (wkTransactions.isEmpty()) {
-      transactionsHtml.append("<p>No transactions in the last 7 days.</p>");
-    } else {
-      transactionsHtml.append(
-          "<table border='1' style='border-collapse: collapse; width: 100%;'>"
-          + "<tr><th>Description</th><th>Amount</th><th>Category</th><th>Date</th></tr>");
-      for (final Transaction transaction : wkTransactions) {
-        transactionsHtml.append("<tr><td>")
-            .append(transaction.getDescription())
-            .append("</td><td>$")
-            .append(String.format(FMT_2F, transaction.getAmount()))
-            .append("</td><td>")
-            .append(transaction.getCategory())
-            .append("</td><td>")
-            .append(transaction.getDate())
-            .append("</td></tr>");
-      }
-      transactionsHtml.append("</table>");
-    }
-
-    return HTML_OPEN
-        + "<h1>Weekly Summary - " + user.getUsername() + "</h1>"
-        + "<p><strong>Total Spent Last 7 Days:</strong> $" + String.format(FMT_2F, weeklyTotal)
-        + P_CLOSE
-        + "<h2>Recent Transactions</h2>"
-        + transactionsHtml
-        + HTML_CLOSE;
+    Map<String, Object> response = new HashMap<>();
+    response.put("username", user.getUsername());
+    response.put("weeklyTotal", weeklyTotal);
+    response.put("transactionCount", wkTransactions.size());
+    response.put("transactions", wkTransactions);
+    
+    return response;
   }
-
   /**
-   * Monthly summary page.
+   * Monthly summary.
    *
    * @param userId user id
-   * @return HTML page
+   * @return JSON monthly summary
    */
-  @GetMapping(value = "/users/{userId}/monthly-summary", produces = MediaType.TEXT_HTML_VALUE)
-  public String monthlySummary(@PathVariable final UUID userId) {
+  @GetMapping(value = "/users/{userId}/monthly-summary", produces = MediaType.APPLICATION_JSON_VALUE)
+  public Map<String, Object> monthlySummary(@PathVariable final UUID userId) {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info(GET_USERS + userId + "/monthly-summary called - Generating monthly summary.");
     }
     if (!mockApiService.getUser(userId).isPresent()) {
       if (LOGGER.isLoggable(Level.WARNING)) {
-        LOGGER.warning("Cannot generate monthly summary - user not found: " + userId);
+          LOGGER.warning("Cannot generate monthly summary - user not found: " + userId);
       }
       throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
@@ -1061,12 +1039,12 @@ public class RouteController {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info("Monthly summary generated successfully for user " + userId);
     }
-    return HTML_OPEN
-        + "<h1>Monthly Summary</h1>"
-        + "<pre>" + summary + "</pre>"
-        + HTML_CLOSE;
+    
+    Map<String, Object> response = new HashMap<>();
+    response.put("summary", summary);
+    
+    return response;
   }
-
   /**
    * Budget report JSON.
    *

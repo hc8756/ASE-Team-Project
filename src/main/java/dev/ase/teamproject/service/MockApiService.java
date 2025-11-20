@@ -443,8 +443,7 @@ public class MockApiService {
         .sum();
     final double remaining = user.getBudget() - totalSpent;
     final StringBuilder summary = new StringBuilder(128);
-    summary.append(String.format("Monthly Summary for %s (%s %d)%n%n",
-          user.getUsername(), now.getMonth(), now.getYear()))
+    summary
         .append(String.format("Total Budget: $%.2f%n", user.getBudget()))
         .append(String.format("Total Spent: $%.2f%n", totalSpent))
         .append(String.format("Remaining: $%.2f%n%n", remaining))
