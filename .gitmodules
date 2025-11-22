@@ -1,0 +1,3 @@
+[submodule "client-repo"]
+	path = client-repo
+	url = git@github.com:hc8756/ASE-Team-Project-Client.git
