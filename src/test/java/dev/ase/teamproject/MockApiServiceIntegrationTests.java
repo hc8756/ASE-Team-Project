@@ -20,46 +20,40 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
-import com.opentable.db.postgres.embedded.EmbeddedPostgres;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest
-@TestPropertySource(locations = "classpath:application-test.properties")
-@ActiveProfiles("test")
+@Testcontainers
+// @TestPropertySource(locations = "classpath:application-test.properties")
+// @ActiveProfiles("test")
 
 public class MockApiServiceIntegrationTests {
 
-  private static EmbeddedPostgres embeddedPostgres;
+   @Container
+    public static PostgreSQLContainer<?> postgresContainer = 
+        new PostgreSQLContainer<>("postgres:16-alpine")
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test");
+
+    @DynamicPropertySource
+    static void overrideProps(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
+        registry.add("spring.datasource.username", postgresContainer::getUsername);
+        registry.add("spring.datasource.password", postgresContainer::getPassword);
+    }
 
   @Autowired
   private MockApiService service;
 
   @Autowired
   private JdbcTemplate jdbcTemplate;
-
-   @BeforeAll
-    static void startEmbeddedPostgres() {
-        try {
-            embeddedPostgres = EmbeddedPostgres.builder()
-                    .setPort(0)
-                    .start();
-
-            DataSource ds = embeddedPostgres.getPostgresDatabase();
-            System.setProperty("spring.datasource.url", ds.getConnection().getMetaData().getURL());
-            System.setProperty("spring.datasource.username", "postgres");
-            System.setProperty("spring.datasource.password", "postgres");
-        } catch (IOException | SQLException e) {
-            throw new RuntimeException("Failed to start embedded Postgres", e);
-        }
-    }
-
-    @AfterAll
-    static void stopEmbeddedPostgres() throws IOException {
-        if (embeddedPostgres != null) {
-            embeddedPostgres.close();
-        }
-    }
 
   private UUID userId;
 
