@@ -28,26 +28,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+@ActiveProfiles("test")
 @SpringBootTest
-@Testcontainers
 // @TestPropertySource(locations = "classpath:application-test.properties")
-// @ActiveProfiles("test")
 
 public class MockApiServiceIntegrationTests {
-
-   @Container
-    public static PostgreSQLContainer<?> postgresContainer = 
-        new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("testdb")
-            .withUsername("test")
-            .withPassword("test");
-
-    @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
-        registry.add("spring.datasource.username", postgresContainer::getUsername);
-        registry.add("spring.datasource.password", postgresContainer::getPassword);
-    }
 
   @Autowired
   private MockApiService service;
