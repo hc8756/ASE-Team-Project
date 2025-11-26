@@ -45,8 +45,7 @@ public class MockApiServiceIntegrationTests {
   @BeforeEach
   void setup() {
     // Clean tables
-    jdbcTemplate.execute("TRUNCATE TABLE transactions");
-    jdbcTemplate.execute("TRUNCATE TABLE users");
+    jdbcTemplate.execute("TRUNCATE TABLE users CASCADE");
 
     // Add a test user
     User user = new User();
