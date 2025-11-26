@@ -6,27 +6,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import dev.ase.teamproject.model.Transaction;
 import dev.ase.teamproject.model.User;
 import dev.ase.teamproject.service.MockApiService;
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import javax.sql.DataSource;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
+
+/** Integration testing for MockApiServices using a test database hosted on GCP. */
 
 @ActiveProfiles("test")
 @SpringBootTest
@@ -47,13 +38,11 @@ public class MockApiServiceIntegrationTests {
     // Clean tables
     jdbcTemplate.execute("TRUNCATE TABLE users CASCADE");
 
-    // Add a test user
     User user = new User();
     user.setUsername("user");
     user.setEmail("user@email.com");
     user.setBudget(100.0);
 
-    // Use service to add user
     User saved = service.addUser(user);
     userId = saved.getUserId();
   }
