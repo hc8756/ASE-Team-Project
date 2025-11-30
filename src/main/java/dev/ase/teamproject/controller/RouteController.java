@@ -3,7 +3,6 @@ package dev.ase.teamproject.controller;
 import dev.ase.teamproject.model.Transaction;
 import dev.ase.teamproject.model.User;
 import dev.ase.teamproject.service.MockApiService;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1023,14 +1022,18 @@ public class RouteController {
    * @param userId user id
    * @return JSON monthly summary
    */
-  @GetMapping(value = "/users/{userId}/monthly-summary", produces = MediaType.APPLICATION_JSON_VALUE)
+  
+  @GetMapping(
+      value = "/users/{userId}/monthly-summary",
+      produces = MediaType.APPLICATION_JSON_VALUE
+  )
   public Map<String, Object> monthlySummary(@PathVariable final UUID userId) {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info(GET_USERS + userId + "/monthly-summary called - Generating monthly summary.");
     }
     if (!mockApiService.getUser(userId).isPresent()) {
       if (LOGGER.isLoggable(Level.WARNING)) {
-          LOGGER.warning("Cannot generate monthly summary - user not found: " + userId);
+        LOGGER.warning("Cannot generate monthly summary - user not found: " + userId);
       }
       throw new NoSuchElementException(USER_NF_PREFIX + userId + NF_SUFFIX);
     }
@@ -1051,6 +1054,7 @@ public class RouteController {
    * @param userId user id
    * @return JSON budget report
    */
+
   @GetMapping(
       value = "/users/{userId}/budget-report",
       produces = MediaType.APPLICATION_JSON_VALUE)
