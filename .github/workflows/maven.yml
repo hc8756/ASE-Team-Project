@@ -228,13 +228,6 @@ jobs:
           name: newman-junit-results
           path: newman-results.xml
 
-      - name: Publish Test Results
-        if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: newman-results.xml
-          check_name: API Test Results
-
   # ===========================================
   # Job 4: Code Coverage Report
   # ===========================================
