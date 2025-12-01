@@ -238,7 +238,8 @@
                   "",
                   "pm.test('P1: Response contains correct username', function () {",
                   "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.username).to.eql('TestUser_' + pm.iterationData.get('timestamp') || jsonData.username);",
+                  "    const expectedUsername = pm.variables.get('uniqueUsername');",
+                  "    pm.expect(jsonData.username).to.eql(expectedUsername);",
                   "});",
                   "",
                   "pm.test('P1: Response is JSON', function () {",
@@ -624,7 +625,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"username\": \"DuplicateTestUser\",\n    \"email\": \"duplicate_first@test.com\",\n    \"budget\": 100\n}"
+              "raw": "{\n    \"username\": \"{{uniqueUsername}}\",\n    \"email\": \"duplicate_{{timestamp}}@test.com\",\n    \"budget\": 100\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/users",
