@@ -1,0 +1,369 @@
+# GitHub Actions CI Workflow for ASE Team Project
+# This workflow runs unit tests, integration tests, coverage, static analysis,
+# and API tests using Newman
+
+name: CI Pipeline - Unit, Integration & API Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '18'
+
+jobs:
+  # ===========================================
+  # Job 1: Unit Tests
+  # ===========================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Unit Tests
+        run: mvn test -Dtest="*UnitTests,*Tests" -DfailIfNoTests=false --batch-mode
+
+      - name: Generate Unit Test Report
+        if: always()
+        run: mvn surefire-report:report-only --batch-mode
+
+      - name: Upload Unit Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            target/surefire-reports/
+            target/site/surefire-report.html
+
+  # ===========================================
+  # Job 2: Integration Tests
+  # ===========================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests  # Run after unit tests pass
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: budget_app_test
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: Test12345678!
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Initialize Test Database Schema
+        env:
+          PGPASSWORD: Test12345678!
+        run: |
+          psql -h localhost -U testuser -d budget_app_test -f src/main/resources/schema.sql || true
+
+      - name: Run Integration Tests
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/budget_app_test
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: Test12345678!
+        run: mvn test -Dtest="*IntegrationTests" -DfailIfNoTests=false --batch-mode
+
+      - name: Upload Integration Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: target/surefire-reports/
+
+  # ===========================================
+  # Job 3: API Tests with Newman
+  # ===========================================
+  api-tests:
+    name: API Tests (Newman/Postman)
+    runs-on: ubuntu-latest
+    needs: unit-tests  # Run after unit tests pass
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: budget_app_test
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: Test12345678!
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Initialize Test Database Schema
+        env:
+          PGPASSWORD: Test12345678!
+        run: |
+          psql -h localhost -U testuser -d budget_app_test -f src/main/resources/schema.sql || true
+
+      - name: Build Application (skip tests)
+        run: mvn clean package -DskipTests --batch-mode
+
+      - name: Start Application
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/budget_app_test
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: Test12345678!
+        run: |
+          java -jar target/*.jar &
+          echo $! > app.pid
+          echo "Waiting for application to start..."
+
+      - name: Wait for Application to be Ready
+        run: |
+          timeout=120
+          while [ $timeout -gt 0 ]; do
+            if curl -s http://localhost:8080/users > /dev/null 2>&1; then
+              echo "Application is ready!"
+              break
+            fi
+            echo "Waiting for application... ($timeout seconds remaining)"
+            sleep 5
+            timeout=$((timeout - 5))
+          done
+          if [ $timeout -le 0 ]; then
+            echo "Application failed to start within timeout"
+            exit 1
+          fi
+
+      - name: Run Newman API Tests
+        run: |
+          newman run postman/postman_collection.json \
+            --reporters cli,htmlextra,junit \
+            --reporter-htmlextra-export newman-report.html \
+            --reporter-junit-export newman-results.xml \
+            --env-var "baseUrl=http://localhost:8080" \
+            --delay-request 100 \
+            --timeout-request 30000
+
+      - name: Stop Application
+        if: always()
+        run: |
+          if [ -f app.pid ]; then
+            kill $(cat app.pid) || true
+          fi
+
+      - name: Upload Newman HTML Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-html-report
+          path: newman-report.html
+
+      - name: Upload Newman JUnit Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-junit-results
+          path: newman-results.xml
+
+      - name: Publish Test Results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: newman-results.xml
+          check_name: API Test Results
+
+  # ===========================================
+  # Job 4: Code Coverage Report
+  # ===========================================
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: budget_app_test
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: Test12345678!
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Initialize Test Database Schema
+        env:
+          PGPASSWORD: Test12345678!
+        run: |
+          psql -h localhost -U testuser -d budget_app_test -f src/main/resources/schema.sql || true
+
+      - name: Run All Tests with Coverage
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/budget_app_test
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: Test12345678!
+        run: mvn clean verify --batch-mode
+
+      - name: Generate JaCoCo Report
+        run: mvn jacoco:report --batch-mode
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: target/site/jacoco/
+
+  # ===========================================
+  # Job 5: Static Analysis
+  # ===========================================
+  static-analysis:
+    name: Static Analysis (Checkstyle & PMD)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Checkstyle
+        run: mvn checkstyle:check --batch-mode
+
+      - name: Generate Checkstyle Report
+        run: mvn checkstyle:checkstyle --batch-mode
+
+      - name: Run PMD
+        run: mvn pmd:check --batch-mode
+
+      - name: Generate PMD Report
+        run: mvn site -DgenerateReports=false --batch-mode
+
+      - name: Upload Static Analysis Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: |
+            target/site/checkstyle.html
+            target/site/pmd.html
+            target/site/cpd.html
+
+  # ===========================================
+  # Job 6: Build Summary
+  # ===========================================
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, api-tests, coverage, static-analysis]
+    if: always()
+
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Create Build Summary
+        run: |
+          echo "# Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| API Tests | ${{ needs.api-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage | ${{ needs.coverage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Static Analysis | ${{ needs.static-analysis.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Artifacts are available for download in the Actions tab." >> $GITHUB_STEP_SUMMARY
