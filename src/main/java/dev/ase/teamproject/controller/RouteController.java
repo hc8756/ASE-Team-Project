@@ -200,6 +200,14 @@ public class RouteController {
       if (user.getEmail() == null) {
         throw new IllegalArgumentException("Email field is required");
       }
+      if (mockApiService.isUsernameExists(user.getUsername(), null)) {
+        LOGGER.warning("Duplicate username violation (JSON): " + user.getUsername());
+        throw new IllegalArgumentException("Username already exists: " + user.getUsername());
+      }
+      if (mockApiService.isEmailExists(user.getEmail(), null)) {
+        LOGGER.warning("Duplicate email violation (JSON): " + user.getEmail());
+        throw new IllegalArgumentException("Email already exists: " + user.getEmail());
+      }
       final User saved = mockApiService.addUser(user);
       return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     } catch (DataIntegrityViolationException e) {

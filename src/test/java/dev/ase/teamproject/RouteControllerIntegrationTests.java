@@ -197,7 +197,7 @@ public class RouteControllerIntegrationTests {
                 .param("email", "form@example.com")
                 .param("budget", "300"))
                 .andExpect(status().isCreated())
-                .andExpect(content().contentType("text/html"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(content().string(containsString("User Created Successfully!")))
                 .andExpect(content().string(containsString("FormUser")));
     }
