@@ -36,9 +36,21 @@ mvn spring-boot:run
 Once started, navigate to http://127.0.0.1:8080 or http://localhost:8080/ in your web browser.
 Alternatively, access GCP-hosted version at https://ase-team-project-141125434285.europe-west1.run.app
 
-## Client Program Repository
+
+## Viewing Log
+- Open the GCP project hosting our project [here](https://console.cloud.google.com/welcome?authuser=0&hl=en&project=ageless-answer-474618-u4)
+- Navigate to **Monitoring → Logs Explorer**
+- Use the time selection tool on the top right to set timeframe of logs you want to view
+- In the query textbox, enter the following query: `textPayload:"CLIENT_LOG:"`
+Following these instructions will show you a list of all API endpoint calls made as well as their time and the IP address of the client.
+
+## Client Program
   
-View our client repository here: https://github.com/hc8756/ASE-Team-Project-Client
+View our client repository here: https://github.com/hc8756/ASE-Team-Project-Client  
+  
+This is an example of a client for general users. It allows the user to log in or create an account before viewing their homepage. The homepage contains a list of the user's transactions which can be added to and edited by the viewer. It also shows a user analyitics of their weekly and monthly budgets.
+
+A hypothetical second client is one for banking institutions. This client would be different in that they would have a view of multiple accounts rather than only one. They would also have limited write permissions to an account's transactions. They would use our service primarily to view and manage their own users. 
 
 ## API Documentation
 
