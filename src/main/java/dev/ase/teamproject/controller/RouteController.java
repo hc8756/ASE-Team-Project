@@ -37,7 +37,6 @@ import org.springframework.web.bind.annotation.RestController;
     "PMD.CommentSize", // Comments enhance understanding
     "PMD.CognitiveComplexity" // Complexity due to branching for error handling
 })
-
 public class RouteController {
 
   /** Class logger. */

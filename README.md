@@ -169,6 +169,7 @@ In several cases, certain rules were intentionally suppressed because their reco
 | `ConstructorCallsOverridableMethod` | `Transaction` | The constructor calls `setDescription()` for input normalization. The method has no side effects and is effectively safe to call. |
 | `NullAssignment` | `Transaction` | Null assignments used for optional initialization (e.g., timestamps) are controlled and do not introduce unsafe behavior. |
 | `OnlyOneReturn` (repeated instances) | Multiple classes | Each suppression corresponds to methods where early returns improve clarity and maintainability. |
+| `SystemPrintln` | `LoggerFilter` | Direct `System.out` logging was replaced by a proper logger; suppression documents the historical rule hit. |
 
 All PMD suppressions are deliberate, documented, and localized to specific cases where strict compliance would hinder clarity or architectural intent.
 
