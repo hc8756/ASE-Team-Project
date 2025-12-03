@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -68,6 +69,10 @@ public class MockApiServiceTests {
     transactionId = transaction.getTransactionId();
     MockitoAnnotations.openMocks(this);
   }
+
+  // ---------------------------------------------------------------------------
+  // viewAllUsers
+  // ---------------------------------------------------------------------------
 
   @Test
   public void viewAllUsers_twoUsersExist_returnsListOfTwo() {
