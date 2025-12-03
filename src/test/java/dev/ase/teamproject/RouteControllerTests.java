@@ -2,6 +2,7 @@ package dev.ase.teamproject;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -1139,8 +1140,11 @@ public class RouteControllerTests {
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.weeklySummary(userId)).thenReturn(List.of(t));
       when(mockApiService.totalLast7Days(userId)).thenReturn(10.0);
-      String html = routeController.weeklySummary(userId);
-      assertTrue(html.contains("<table"));
+      Map<String, Object> summary = routeController.weeklySummary(userId);
+      assertEquals("Alice", summary.get("username"));
+      assertEquals(10.0, (Double) summary.get("weeklyTotal"));
+      assertEquals(1, summary.get("transactionCount"));
+      assertEquals(1, ((List<?>) summary.get("transactions")).size());
     } finally {
       setLogLevel(originalLevel);
     }
@@ -1175,8 +1179,8 @@ public class RouteControllerTests {
       String mockSummary = "Total spent this month: $400";
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.getMonthlySummary(userId)).thenReturn(mockSummary);
-      String html = routeController.monthlySummary(userId);
-      assertTrue(html.contains("Total spent this month"));
+      Map<String, Object> response = routeController.monthlySummary(userId);
+      assertEquals(mockSummary, response.get("summary"));
     } finally {
       setLogLevel(originalLevel);
     }
@@ -3121,11 +3125,14 @@ public class RouteControllerTests {
     when(mockApiService.weeklySummary(userId)).thenReturn(List.of(t));
     when(mockApiService.totalLast7Days(userId)).thenReturn(10.0);
 
-    String html = routeController.weeklySummary(userId);
+    Map<String, Object> summary = routeController.weeklySummary(userId);
 
-    assertTrue(html.contains("<table"));
-    assertTrue(html.contains("Lunch"));
-    assertTrue(html.contains("$10.00"));
+    assertEquals("Alice", summary.get("username"));
+    assertEquals(10.0, (Double) summary.get("weeklyTotal"));
+    assertEquals(1, summary.get("transactionCount"));
+    List<?> transactions = (List<?>) summary.get("transactions");
+    assertEquals(1, transactions.size());
+    assertTrue(transactions.contains(t));
   }
 
   /**
@@ -3145,16 +3152,15 @@ public class RouteControllerTests {
     when(mockApiService.weeklySummary(userId)).thenReturn(transactions);
     when(mockApiService.totalLast7Days(userId)).thenReturn(80.0);
 
-    String html = routeController.weeklySummary(userId);
+    Map<String, Object> summary = routeController.weeklySummary(userId);
 
-    assertNotNull(html);
-    assertTrue(html.contains("<h1>Weekly Summary - Alice</h1>"));
-    assertTrue(html.contains("Total Spent Last 7 Days"));
-    assertTrue(html.contains("<table"));
-    assertTrue(html.contains("Lunch"));
-    assertTrue(html.contains("Subway pass"));
-    assertTrue(html.contains("$50.00"));
-    assertTrue(html.contains("$30.00"));
+    assertNotNull(summary);
+    assertEquals("Alice", summary.get("username"));
+    assertEquals(80.0, (Double) summary.get("weeklyTotal"));
+    assertEquals(2, summary.get("transactionCount"));
+    List<?> responseTx = (List<?>) summary.get("transactions");
+    assertEquals(2, responseTx.size());
+    assertTrue(responseTx.containsAll(List.of(tx1, tx2)));
   }
 
   /**
@@ -3170,12 +3176,13 @@ public class RouteControllerTests {
     when(mockApiService.weeklySummary(userId)).thenReturn(new ArrayList<>());
     when(mockApiService.totalLast7Days(userId)).thenReturn(0.0);
 
-    String html = routeController.weeklySummary(userId);
+    Map<String, Object> summary = routeController.weeklySummary(userId);
 
-    assertNotNull(html);
-    assertTrue(html.contains("<h1>Weekly Summary - Bob</h1>"));
-    assertTrue(html.contains("No transactions in the last 7 days."));
-    assertTrue(html.contains("$0.00"));
+    assertNotNull(summary);
+    assertEquals("Bob", summary.get("username"));
+    assertEquals(0.0, (Double) summary.get("weeklyTotal"));
+    assertEquals(0, summary.get("transactionCount"));
+    assertTrue(((List<?>) summary.get("transactions")).isEmpty());
   }
 
   /**
@@ -3209,9 +3216,9 @@ public class RouteControllerTests {
     when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
     when(mockApiService.getMonthlySummary(userId)).thenReturn(null);
 
-    String html = routeController.monthlySummary(userId);
+    Map<String, Object> response = routeController.monthlySummary(userId);
 
-    assertTrue(html.contains("<pre>null</pre>"));
+    assertNull(response.get("summary"));
   }
 
   /**
@@ -3226,13 +3233,10 @@ public class RouteControllerTests {
     when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
     when(mockApiService.getMonthlySummary(userId)).thenReturn(mockSummary);
 
-    String html = routeController.monthlySummary(userId);
+    Map<String, Object> response = routeController.monthlySummary(userId);
 
-    assertNotNull(html);
-    assertTrue(html.contains("<h1>Monthly Summary</h1>"));
-    assertTrue(html.contains("Total spent this month"));
-    assertTrue(html.contains("<pre>"));
-    assertTrue(html.contains("$400"));
+    assertNotNull(response);
+    assertEquals(mockSummary, response.get("summary"));
   }
 
   /**
@@ -3247,11 +3251,10 @@ public class RouteControllerTests {
     when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
     when(mockApiService.getMonthlySummary(userId)).thenReturn("");
 
-    String html = routeController.monthlySummary(userId);
+    Map<String, Object> response = routeController.monthlySummary(userId);
 
-    assertNotNull(html);
-    assertTrue(html.contains("<h1>Monthly Summary</h1>"));
-    assertTrue(html.contains("<pre></pre>"));
+    assertNotNull(response);
+    assertEquals("", response.get("summary"));
   }
 
   /**

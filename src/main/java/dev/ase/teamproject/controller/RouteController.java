@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -1013,8 +1014,8 @@ public class RouteController {
    * @param userId user id
    * @return JSON weekly summary
    */
-  @GetMapping(value = "/users/{userId}/weekly-summary", produces = MediaType.TEXT_HTML_VALUE)
-  public String weeklySummary(@PathVariable final UUID userId) {
+  @GetMapping(value = "/users/{userId}/weekly-summary", produces = MediaType.APPLICATION_JSON_VALUE)
+  public Map<String, Object> weeklySummary(@PathVariable final UUID userId) {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info(GET_USERS + userId + "/weekly-summary called - Generating weekly summary.");
     }
@@ -1034,32 +1035,13 @@ public class RouteController {
           + " with " + wkTransactions.size() + " transactions.");
     }
 
-    final StringBuilder html = new StringBuilder(256);
-    html.append(HTML_OPEN)
-        .append("<h1>Weekly Summary - ")
-        .append(user.getUsername())
-        .append("</h1><p><strong>Total Spent Last 7 Days:</strong> $")
-        .append(String.format(FMT_2F, weeklyTotal))
-        .append(P_CLOSE);
+    final Map<String, Object> response = new ConcurrentHashMap<>();
+    response.put("username", user.getUsername());
+    response.put("weeklyTotal", weeklyTotal);
+    response.put("transactionCount", wkTransactions.size());
+    response.put("transactions", wkTransactions);
 
-    if (wkTransactions.isEmpty()) {
-      html.append("<p>No transactions in the last 7 days.</p>");
-    } else {
-      html.append("<table border=1><tr><th>Description</th><th>Category</th><th>Amount</th></tr>");
-      for (final Transaction transaction : wkTransactions) {
-        html.append("<tr><td>")
-            .append(transaction.getDescription())
-            .append("</td><td>")
-            .append(transaction.getCategory())
-            .append("</td><td>$")
-            .append(String.format(FMT_2F, transaction.getAmount()))
-            .append("</td></tr>");
-      }
-      html.append("</table>");
-    }
-
-    html.append(HTML_CLOSE);
-    return html.toString();
+    return response;
   }
 
   /**
@@ -1068,8 +1050,11 @@ public class RouteController {
    * @param userId user id
    * @return JSON monthly summary
    */
-  @GetMapping(value = "/users/{userId}/monthly-summary", produces = MediaType.TEXT_HTML_VALUE)
-  public String monthlySummary(@PathVariable final UUID userId) {
+  @GetMapping(
+      value = "/users/{userId}/monthly-summary",
+      produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  public Map<String, Object> monthlySummary(@PathVariable final UUID userId) {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info(GET_USERS + userId + "/monthly-summary called - Generating monthly summary.");
     }
@@ -1084,14 +1069,13 @@ public class RouteController {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info("Monthly summary generated successfully for user " + userId);
     }
-    
-    final StringBuilder html = new StringBuilder(128);
-    html.append(HTML_OPEN)
-        .append("<h1>Monthly Summary</h1><pre>")
-        .append(summary)
-        .append("</pre>")
-        .append(HTML_CLOSE);
-    return html.toString();
+
+    final Map<String, Object> response = new ConcurrentHashMap<>();
+    if (summary != null) {
+      response.put("summary", summary);
+    }
+
+    return response;
   }
   
   /**
