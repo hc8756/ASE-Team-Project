@@ -1100,6 +1100,7 @@ public class RouteController {
    * @param userId user id
    * @return JSON budget report
    */
+
   @GetMapping(
       value = "/users/{userId}/budget-report",
       produces = MediaType.APPLICATION_JSON_VALUE)
