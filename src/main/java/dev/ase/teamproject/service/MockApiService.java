@@ -5,10 +5,12 @@ import dev.ase.teamproject.model.User;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,9 @@ import org.springframework.stereotype.Service;
 @SuppressWarnings({
     "PMD.TooManyMethods", // Service class with multiple operations
     "PMD.OnlyOneReturn", // Multiple return statements for clarity
-    "PMD.AvoidCatchingGenericException" // Generic exception handling for DB ops
+    "PMD.AvoidCatchingGenericException", // Generic exception handling for DB ops
+    "PMD.CyclomaticComplexity", // Complex service methods for validations
+    "PMD.CognitiveComplexity" // Complex validation and DB interaction flows
 })
 @Service
 public class MockApiService {
@@ -48,7 +52,7 @@ public class MockApiService {
       transaction.setTransactionId((UUID) rs.getObject("transaction_id"));
       transaction.setUserId((UUID) rs.getObject("user_id"));
       transaction.setDescription(rs.getString("description"));
-      transaction.setAmount(rs.getDouble("amount"));
+      transaction.setAmount(rs.getDouble(AMOUNT));
       transaction.setCategory(rs.getString("category"));
       
       // Handle potential null values for timestamps
@@ -68,6 +72,9 @@ public class MockApiService {
 
   /** Common string literal. */
   private static final String USER_NOT_FOUND = "User not found";
+  
+  /** Common string literal. */
+  private static final String AMOUNT = "amount";
 
   /**
    * Constructs a new {@code MockApiService} with the specified {@code JdbcTemplate}.
@@ -179,21 +186,23 @@ public class MockApiService {
    * @throws IllegalStateException if the insert operation fails.
    */
   public Transaction addTransaction(final Transaction transaction) {
-    try {
-      // Validate required fields before database operation
-      if (transaction.getUserId() == null) {
-        throw new IllegalArgumentException("User ID is required");
-      }
-      if (transaction.getDescription() == null || transaction.getDescription().trim().isEmpty()) {
-        throw new IllegalArgumentException("Description is required");
-      }
-      if (transaction.getAmount() <= 0) {
-        throw new IllegalArgumentException("Amount must be greater than 0");
-      }
-      if (transaction.getCategory() == null || transaction.getCategory().trim().isEmpty()) {
-        throw new IllegalArgumentException("Category is required");
-      }
+    // Validate required fields before database operation
+    if (transaction.getUserId() == null) {
+      throw new IllegalArgumentException("User ID is required");
+    }
+    final String description = transaction.getDescription();
+    if (description == null || description.isBlank()) {
+      throw new IllegalArgumentException("Description is required");
+    }
+    if (transaction.getAmount() <= 0) {
+      throw new IllegalArgumentException("Amount must be greater than 0");
+    }
+    final String category = transaction.getCategory();
+    if (category == null || category.isBlank()) {
+      throw new IllegalArgumentException("Category is required");
+    }
 
+    try {
       final String sql = "INSERT INTO transactions (user_id, description, amount, category) " 
           + "VALUES (?, ?, ?, ?::transaction_category) "
           + "RETURNING transaction_id, created_time, created_date";
@@ -209,20 +218,18 @@ public class MockApiService {
           transaction.getCategory());
       return savedTransaction != null ? savedTransaction : transaction;
     } catch (Exception e) {
-      // Provide more specific error messages based on the exception type
-      if (e instanceof IllegalArgumentException) {
-        throw e; // Re-throw our validation errors as-is
-      } else if (e.getMessage().contains("foreign key constraint")) {
-        throw new IllegalArgumentException("Invalid user ID: user does not exist");
-      } else if (e.getMessage().contains("transaction_category") 
-          || e.getMessage().contains("enum")) {
+      final String message = e.getMessage();
+      if (message != null && message.contains("foreign key constraint")) {
+        throw new IllegalArgumentException("Invalid user ID: user does not exist", e);
+      } else if (message != null && (message.contains("transaction_category") 
+          || message.contains("enum"))) {
         throw new IllegalArgumentException("Invalid category. Valid categories are: FOOD,"
             + "TRANSPORTATION, ENTERTAINMENT, UTILITIES, SHOPPING," 
-            + "HEALTHCARE, TRAVEL, EDUCATION, OTHER");
-      } else if (e.getMessage().contains("numeric") || e.getMessage().contains("amount")) {
-        throw new IllegalArgumentException("Invalid amount format: must be a valid number");
+            + "HEALTHCARE, TRAVEL, EDUCATION, OTHER", e);
+      } else if (message != null && (message.contains("numeric") || message.contains(AMOUNT))) {
+        throw new IllegalArgumentException("Invalid amount format: must be a valid number", e);
       } else {
-        throw new IllegalStateException("Failed to create transaction: " + e.getMessage(), e);
+        throw new IllegalStateException("Failed to create transaction: " + message, e);
       }
     }
   }
@@ -260,94 +267,92 @@ public class MockApiService {
     
     final Transaction transaction = existing.get();
     
+    // Validate and apply updates
+    if (updates.containsKey("description")) {
+      final Object description = updates.get("description");
+      if (description instanceof String) {
+        final String desc = (String) description;
+        if (desc.isBlank()) {
+          throw new IllegalArgumentException("Description cannot be empty");
+        }
+        transaction.setDescription(desc);
+      } else {
+        throw new IllegalArgumentException("Description must be a string");
+      }
+    }
+    
+    if (updates.containsKey(AMOUNT)) {
+      final Object amount = updates.get(AMOUNT);
+      final double newAmount;
+      if (amount instanceof Number) {
+        newAmount = ((Number) amount).doubleValue();
+      } else if (amount instanceof String) {
+        try {
+          newAmount = Double.parseDouble((String) amount);
+        } catch (NumberFormatException e) {
+          throw new IllegalArgumentException("Amount must be a valid number", e);
+        }
+      } else {
+        throw new IllegalArgumentException("Amount must be a number");
+      }
+      
+      if (newAmount <= 0) {
+        throw new IllegalArgumentException("Amount must be greater than 0");
+      }
+      transaction.setAmount(newAmount);
+    }
+    
+    if (updates.containsKey("category")) {
+      final Object category = updates.get("category");
+      if (category instanceof String) {
+        final String cat = (String) category;
+        if (cat.isBlank()) {
+          throw new IllegalArgumentException("Category cannot be empty");
+        }
+        // Validate category against known values
+        final List<String> validCategories = Arrays.asList(
+            "FOOD", "TRANSPORTATION", "ENTERTAINMENT", "UTILITIES", 
+            "SHOPPING", "HEALTHCARE", "TRAVEL", "EDUCATION", "OTHER"
+        );
+        if (!validCategories.contains(cat.toUpperCase(Locale.ROOT))) {
+          throw new IllegalArgumentException("Invalid category: " + cat
+              + ". Valid categories are: " + String.join(", ", validCategories));
+        }
+        transaction.setCategory(cat);
+      } else {
+        throw new IllegalArgumentException("Category must be a string");
+      }
+    }
+    
+    // Check if any valid updates were provided
+    if (updates.isEmpty()) {
+      throw new IllegalArgumentException("No valid fields provided for update");
+    }
+    
+    final String sql = "UPDATE transactions SET description = ?, amount = ?, " 
+        + "category = ?::transaction_category WHERE transaction_id = ?";
+    final int rowsAffected;
     try {
-      // Validate and apply updates
-      if (updates.containsKey("description")) {
-        final Object description = updates.get("description");
-        if (description instanceof String) {
-          final String desc = (String) description;
-          if (desc.trim().isEmpty()) {
-            throw new IllegalArgumentException("Description cannot be empty");
-          }
-          transaction.setDescription(desc);
-        } else {
-          throw new IllegalArgumentException("Description must be a string");
-        }
-      }
-      
-      if (updates.containsKey("amount")) {
-        final Object amount = updates.get("amount");
-        double newAmount;
-        if (amount instanceof Number) {
-          newAmount = ((Number) amount).doubleValue();
-        } else if (amount instanceof String) {
-          try {
-            newAmount = Double.parseDouble((String) amount);
-          } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Amount must be a valid number");
-          }
-        } else {
-          throw new IllegalArgumentException("Amount must be a number");
-        }
-        
-        if (newAmount <= 0) {
-          throw new IllegalArgumentException("Amount must be greater than 0");
-        }
-        transaction.setAmount(newAmount);
-      }
-      
-      if (updates.containsKey("category")) {
-        final Object category = updates.get("category");
-        if (category instanceof String) {
-          final String cat = (String) category;
-          if (cat.trim().isEmpty()) {
-            throw new IllegalArgumentException("Category cannot be empty");
-          }
-          // Validate category against known values
-          final List<String> validCategories = Arrays.asList(
-              "FOOD", "TRANSPORTATION", "ENTERTAINMENT", "UTILITIES", 
-              "SHOPPING", "HEALTHCARE", "TRAVEL", "EDUCATION", "OTHER"
-          );
-          if (!validCategories.contains(cat.toUpperCase())) {
-            throw new IllegalArgumentException("Invalid category: " + cat
-                + ". Valid categories are: " + String.join(", ", validCategories));
-          }
-          transaction.setCategory(cat);
-        } else {
-          throw new IllegalArgumentException("Category must be a string");
-        }
-      }
-      
-      // Check if any valid updates were provided
-      if (updates.isEmpty()) {
-        throw new IllegalArgumentException("No valid fields provided for update");
-      }
-      
-      final String sql = "UPDATE transactions SET description = ?, amount = ?, " 
-          + "category = ?::transaction_category WHERE transaction_id = ?";
-      final int rowsAffected = jdbcTemplate.update(sql,
+      rowsAffected = jdbcTemplate.update(sql,
           transaction.getDescription(),
           transaction.getAmount(),
           transaction.getCategory(),
           transactionId);
-          
-      if (rowsAffected > 0) {
-        return getTransaction(transactionId);
-      } else {
-        throw new IllegalStateException("Failed to update transaction: no rows affected");
-      }
-    } catch (Exception e) {
-      if (e instanceof IllegalArgumentException) {
-        throw e; // Re-throw our validation errors
-      } else if (e.getMessage().contains("transaction_category") 
-          || e.getMessage().contains("enum")) {
+    } catch (DataAccessException e) {
+      final String message = e.getMessage();
+      if (message != null && (message.contains("transaction_category") 
+          || message.contains("enum"))) {
         throw new IllegalArgumentException("Invalid category. Valid categories are: "
-        + "FOOD, TRANSPORTATION, ENTERTAINMENT, UTILITIES, SHOPPING, " 
-        + "HEALTHCARE, TRAVEL, EDUCATION, OTHER");
-      } else {
-        throw new IllegalStateException("Failed to update transaction: " + e.getMessage(), e);
+            + "FOOD, TRANSPORTATION, ENTERTAINMENT, UTILITIES, SHOPPING, " 
+            + "HEALTHCARE, TRAVEL, EDUCATION, OTHER", e);
       }
+      throw new IllegalStateException("Failed to update transaction: " + message, e);
     }
+
+    if (rowsAffected > 0) {
+      return getTransaction(transactionId);
+    }
+    throw new IllegalStateException("Failed to update transaction: no rows affected");
   }
 
   /**
