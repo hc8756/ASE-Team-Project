@@ -26,85 +26,46 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * API routes for the application.
+ * REST controller providing API endpoints for user and transaction management.
+ * Supports both JSON and HTML form-based interactions for creating, reading,
+ * updating, and deleting users and transactions, as well as budget analytics.
  */
 @RestController
-@SuppressWarnings({
-    "PMD.CyclomaticComplexity", // Complexity due to many routes 
-    "PMD.TooManyMethods", // Many endpoints in one controller
-    "PMD.OnlyOneReturn", // Multiple return statements for clarity
-    "PMD.AvoidCatchingGenericException", // Catching RuntimeException for logging
-    "PMD.CommentSize", // Comments enhance understanding
-    "PMD.CognitiveComplexity" // Complexity due to branching for error handling
-})
 public class RouteController {
-
-  /** Class logger. */
   private static final Logger LOGGER = Logger.getLogger(RouteController.class.getName());
-
-  /** Common HTML literal. */
   private static final String HTML_OPEN = "<html><body>";
-
-  /** Common HTML literal. */
   private static final String HTML_CLOSE = "</body></html>";
-
-  /** Common HTML literal. */
   private static final String P_OPEN = "<p>";
-
-  /** Common HTML literal. */
   private static final String P_CLOSE = "</p>";
-
-  /** Common HTML literal. */
   private static final String H2_OPEN = "<h2>";
-
-  /** Common HTML literal. */
   private static final String H2_CLOSE = "</h2>";
-
-  /** Common HTML literal. */
   private static final String FMT_2F = "%.2f";
-
-  /** Common HTML literal. */
   private static final String USER_NF_PREFIX = "User ";
-
-  /** Common HTML literal. */
   private static final String TX_NF_PREFIX = "Transaction ";
-
-  /** Common HTML literal. */
   private static final String NF_SUFFIX = " not found";
-
-  /** Common HTML literal. */
   private static final String NF_FOR_USER = " not found for user ";
-
-  /** Common HTML literal. */
   private static final String FORM_CLOSE = "</form>";
-
-  /** Common HTML literal. */
   private static final String REQUIRED = " required><br><br>";
-
-  /** Common string literal. */
   private static final String GET_USERS = "GET /users/";
-
-  /** Common string literal. */
   private static final String POST_USERS = "POST /users/";
-
-  /** Common string literal. */
   private static final String USER_CR_FAIL = "User Creation Failed";
 
-  /** Service layer. */
   private final MockApiService mockApiService;
 
   /**
-   * Constructs the controller.
+   * Constructs a new {@code RouteController} with the specified service dependency.
    *
-   * @param mockApiService service dependency
+   * @param mockApiService The service layer handling business logic and data access.
    */
   public RouteController(final MockApiService mockApiService) {
     this.mockApiService = mockApiService;
   }
 
   /**
-   * Home page listing all users.
+   * Displays the home page with a list of all users in the system.
+   * Provides links to individual user detail pages.
    *
+   * @return An HTML response containing the user list or a message if no users exist.
    */
   @GetMapping({"/", "/index"})
   public ResponseEntity<String> index() {
@@ -144,9 +105,9 @@ public class RouteController {
   // ---------------------------------------------------------------------------
 
   /**
-   * Returns all users.
+   * Retrieves all users in the system.
    *
-   * @return list of users
+   * @return A JSON list of all {@code User} objects.
    */
   @GetMapping("/users")
   public List<User> getAllUsers() {
@@ -157,10 +118,11 @@ public class RouteController {
   }
 
   /**
-   * Returns details of a user.
+   * Retrieves detailed information about a specific user.
    *
-   * @param userId user id
-   * @return user
+   * @param userId The unique identifier of the user.
+   * @return A JSON response containing the {@code User} object.
+   * @throws NoSuchElementException if the user is not found.
    */
   @GetMapping("/users/{userId}")
   public ResponseEntity<User> getUser(@PathVariable final UUID userId) {
@@ -183,16 +145,19 @@ public class RouteController {
   }
 
   /**
-   * Creates a user via JSON.
+   * Creates a new user from a JSON request body. Validates that username and email
+   * are provided and checks for uniqueness constraints.
    *
-   * @param user user payload
-   * @return created user
+   * @param user The {@code User} object containing username, email, and budget.
+   * @return A JSON response with the created {@code User} object and HTTP 201 status.
+   * @throws RuntimeException if username or email is missing.
+   * @throws IllegalArgumentException if username or email already exists.
+   * @throws IllegalStateException if user creation fails.
    */
   @PostMapping(
       value = "/users",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  @SuppressWarnings("PMD.AvoidThrowingRawExceptionTypes")
   public ResponseEntity<User> createUserJson(@RequestBody final User user) {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info("POST /users called - Creating new user via JSON: " + user.getUsername());
@@ -238,12 +203,13 @@ public class RouteController {
   }
 
   /**
-   * Creates a user via form; returns HTML.
+   * Creates a new user from HTML form data. Validates uniqueness of username
+   * and email before creation.
    *
-   * @param username username
-   * @param email email
-   * @param budget budget
-   * @return HTML confirmation
+   * @param username The username for the new user.
+   * @param email The email address for the new user.
+   * @param budget The initial budget for the new user.
+   * @return An HTML response confirming user creation or displaying an error message.
    */
   @PostMapping(
       value = "/users/form",
@@ -293,11 +259,15 @@ public class RouteController {
   }
 
   /**
-   * Updates a user via JSON.
+   * Updates an existing user with new information from a JSON request body.
+   * Validates uniqueness of username and email if they are being changed.
+   * Fields that are not provided or are empty retain their existing values.
    *
-   * @param userId id
-   * @param userUpdates updates
-   * @return updated user
+   * @param userId The unique identifier of the user to update.
+   * @param userUpdates A {@code User} object containing the fields to update.
+   * @return A JSON response with the updated {@code User} object.
+   * @throws NoSuchElementException if the user is not found.
+   * @throws IllegalArgumentException if the new username or email already exists.
    */
   @PutMapping(
       value = "/users/{userId}",
@@ -344,9 +314,6 @@ public class RouteController {
     if (userUpdates.getEmail() == null || userUpdates.getEmail().isEmpty()) {
       userUpdates.setEmail(existing.getEmail());
     }
-    userUpdates.setBudget(userUpdates.getBudget() == 0.0
-        ? existing.getBudget()
-        : userUpdates.getBudget());
 
     mockApiService.deleteUser(userId);
     final User saved = mockApiService.addUser(userUpdates);
@@ -358,13 +325,15 @@ public class RouteController {
   }
 
   /**
-   * Updates a user via form; returns HTML.
+   * Updates an existing user from HTML form data. Validates uniqueness of username
+   * and email if they are being changed.
    *
-   * @param userId id
-   * @param username username
-   * @param email email
-   * @param budget budget
-   * @return HTML confirmation
+   * @param userId The unique identifier of the user to update.
+   * @param username The new username.
+   * @param email The new email address.
+   * @param budget The new budget amount.
+   * @return An HTML response confirming the update or displaying an error message.
+   * @throws NoSuchElementException if the user is not found.
    */
   @PostMapping(
       value = "/users/{userId}/update-form",
@@ -423,11 +392,60 @@ public class RouteController {
       return ResponseEntity.ok(html);
     }
   }
+  /**
+   * Deletes a transaction via a GET request for testing convenience.
+   * This endpoint should not be used in production as DELETE operations should use
+   * the DELETE HTTP method. Validates transaction ownership before deletion.
+   *
+   * @param userId The unique identifier of the user who owns the transaction.
+   * @param transactionId The unique identifier of the transaction to delete.
+   * @return ResponseEntity with plain text confirmation message (200 OK) or
+   *         error description (404 Not Found, 500 Internal Server Error).
+   */
+
+  @GetMapping("/users/{userId}/deletetransaction/{transactionId}")
+  public ResponseEntity<String> deleteTransactionViaGet(
+      @PathVariable final UUID userId,
+      @PathVariable final UUID transactionId) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("GET /users/" + userId + "/deletetransaction/"
+          + transactionId + " called - Deleting via GET.");
+    }
+    if (!mockApiService.getUser(userId).isPresent()) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot delete via GET - user not found: " + userId);
+      }
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body("Error: User " + userId + NF_SUFFIX);
+    }
+    final Optional<Transaction> txOpt = mockApiService.getTransaction(transactionId);
+    final boolean belongsToUser = txOpt.map(t -> t.getUserId().equals(userId)).orElse(false);
+    if (!belongsToUser) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Cannot delete via GET - transaction not found: " + transactionId);
+      }
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body("Error: Transaction " + transactionId + " not found for user " + userId);
+    }
+    final boolean deleted = mockApiService.deleteTransaction(transactionId);
+    if (!deleted) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Transaction deletion via GET failed: " + transactionId);
+      }
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body("Error: Failed to delete transaction " + transactionId);
+    }
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("Transaction deleted successfully via GET for user "
+          + userId + ": " + transactionId);
+    }
+    return ResponseEntity.ok("Transaction deleted successfully!");
+  }
 
   /**
-   * Shows user create form.
+   * Displays an HTML form for creating a new user.
    *
-   * @return HTML form
+   * @return An HTML page with a form for entering user details.
    */
   @GetMapping(value = "/users/create-form", produces = MediaType.TEXT_HTML_VALUE)
   public String showCreateUserForm() {
@@ -446,10 +464,12 @@ public class RouteController {
   }
 
   /**
-   * Shows user edit form.
+   * Displays an HTML form for editing an existing user. The form is pre-populated
+   * with the user's current information.
    *
-   * @param userId id
-   * @return HTML form
+   * @param userId The unique identifier of the user to edit.
+   * @return An HTML page with a form for updating user details.
+   * @throws NoSuchElementException if the user is not found.
    */
   @GetMapping(value = "/users/{userId}/edit-form", produces = MediaType.TEXT_HTML_VALUE)
   public String showEditUserForm(@PathVariable final UUID userId) {
@@ -483,10 +503,11 @@ public class RouteController {
   }
 
   /**
-   * Deletes a user by ID via JSON.
+   * Deletes a user by their unique identifier via a DELETE request.
    *
-   * @param userId id
-   * @return deletion result
+   * @param userId The unique identifier of the user to delete.
+   * @return A JSON response confirming the deletion.
+   * @throws NoSuchElementException if the user is not found or already deleted.
    */
   @DeleteMapping("/users/{userId}")
   public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable final UUID userId) {
@@ -507,10 +528,13 @@ public class RouteController {
   }
 
   /**
-   * Deletes a user via GET (testing).
+   * Deletes a user by their unique identifier via a GET request.
+   * This endpoint is provided for testing convenience but should not be used
+   * in production as DELETE operations should use the DELETE HTTP method.
    *
-   * @param userId id
-   * @return plain text result
+   * @param userId The unique identifier of the user to delete.
+   * @return A plain text confirmation message.
+   * @throws NoSuchElementException if the user is not found.
    */
   @GetMapping("/deleteuser/{userId}")
   public String deleteUserViaGet(@PathVariable final UUID userId) {
@@ -535,10 +559,12 @@ public class RouteController {
   // ---------------------------------------------------------------------------
 
   /**
-   * Lists transactions for a user.
+   * Retrieves all transactions for a specific user.
+   * Returns an empty list if the user has no transactions.
    *
-   * @param userId id
-   * @return list or error
+   * @param userId The unique identifier of the user whose transactions to retrieve.
+   * @return ResponseEntity containing a list of Transaction objects, or an error message
+   *         with NOT_FOUND status if the user does not exist.
    */
   @GetMapping("/users/{userId}/transactions")
   public ResponseEntity<?> getUserTransactions(@PathVariable final UUID userId) {
@@ -568,11 +594,14 @@ public class RouteController {
   }
 
   /**
-   * Gets a transaction for a user.
+   * Retrieves a specific transaction for a user by transaction ID.
+   * Validates that the transaction belongs to the specified user.
    *
-   * @param userId user id
-   * @param transactionId transaction id
-   * @return transaction
+   * @param userId The unique identifier of the user.
+   * @param transactionId The unique identifier of the transaction to retrieve.
+   * @return The requested Transaction object.
+   * @throws NoSuchElementException if the user is not found, or if the transaction
+   *         does not exist or does not belong to the specified user.
    */
   @GetMapping("/users/{userId}/transactions/{transactionId}")
   public ResponseEntity<Transaction> getTransaction(
@@ -597,11 +626,15 @@ public class RouteController {
   }
 
   /**
-   * Creates a transaction via JSON.
+   * Creates a new transaction for a user using JSON input.
+   * The transaction is automatically associated with the specified user,
+   * overriding any userId present in the request body.
    *
-   * @param userId user id
-   * @param transaction transaction
-   * @return created transaction
+   * @param userId The unique identifier of the user for whom to create the transaction.
+   * @param transaction The transaction object containing details (description, amount, category).
+   *        The userId field will be overwritten with the path parameter value.
+   * @return The created Transaction object with HTTP status 201 (CREATED).
+   * @throws NoSuchElementException if the user is not found.
    */
   @PostMapping(
       value = "/users/{userId}/transactions",
@@ -638,13 +671,15 @@ public class RouteController {
   }
 
   /**
-   * Creates a transaction via form; returns HTML.
+   * Creates a new transaction for a user using HTML form data.
+   * Returns an HTML page confirming the transaction creation with formatted details.
    *
-   * @param userId user id
-   * @param description description
-   * @param amount amount
-   * @param category category
-   * @return HTML confirmation
+   * @param userId The unique identifier of the user for whom to create the transaction.
+   * @param description A textual description of the transaction.
+   * @param amount The monetary amount of the transaction.
+   * @param category The category of the transaction (e.g., FOOD, TRANSPORTATION).
+   * @return ResponseEntity containing an HTML success page with HTTP status 201 (CREATED),
+   *         or an error message with appropriate status code if creation fails.
    */
   @PostMapping(value = "/users/{userId}/transactions/form",
       consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
@@ -695,12 +730,17 @@ public class RouteController {
   }
 
   /**
-   * Updates a transaction via JSON.
+   * Updates an existing transaction for a user with partial data.
+   * Only the fields present in the updates map will be modified; other fields remain unchanged.
+   * Validates that the transaction belongs to the specified user before updating.
    *
-   * @param userId user id
-   * @param transactionId transaction id
-   * @param updates field map
-   * @return updated transaction
+   * @param userId The unique identifier of the user who owns the transaction.
+   * @param transactionId The unique identifier of the transaction to update.
+   * @param updates A map containing the fields to update (e.g., "description", "amount",
+   *                "category").
+   * @return The updated Transaction object.
+   * @throws NoSuchElementException if the user is not found, or if the transaction
+   *         does not exist or does not belong to the specified user.
    */
   @PutMapping(
       value = "/users/{userId}/transactions/{transactionId}",
@@ -732,7 +772,7 @@ public class RouteController {
           TX_NF_PREFIX + transactionId + NF_FOR_USER + userId);
     }
     try {
-      final Optional<Transaction> updated = 
+      final Optional<Transaction> updated =
           mockApiService.updateTransaction(transactionId, updates);
       if (LOGGER.isLoggable(Level.INFO)) {
         LOGGER.info("Transaction updated successfully: " + transactionId + " for user " + userId);
@@ -747,10 +787,12 @@ public class RouteController {
   }
 
   /**
-   * Shows transaction create form.
+   * Displays an HTML form for creating a new transaction.
+   * The form includes fields for description, amount, and a dropdown for category selection.
    *
-   * @param userId user id
-   * @return HTML form
+   * @param userId The unique identifier of the user for whom to display the form.
+   * @return An HTML page containing the transaction creation form.
+   * @throws NoSuchElementException if the user is not found.
    */
   @GetMapping(
       value = "/users/{userId}/transactions/create-form",
@@ -792,11 +834,15 @@ public class RouteController {
   }
 
   /**
-   * Deletes a transaction via JSON.
+   * Deletes a specific transaction for a user.
+   * Validates that the transaction belongs to the specified user before deletion.
    *
-   * @param userId user id
-   * @param transactionId transaction id
-   * @return deletion result
+   * @param userId The unique identifier of the user who owns the transaction.
+   * @param transactionId The unique identifier of the transaction to delete.
+   * @return A map containing deletion confirmation with keys: "deleted" (boolean),
+   *         "userId" (UUID), and "transactionId" (UUID).
+   * @throws NoSuchElementException if the user is not found, or if the transaction
+   *         does not exist or does not belong to the specified user.
    */
   @DeleteMapping("/users/{userId}/transactions/{transactionId}")
   public ResponseEntity<Map<String, Object>> deleteTransaction(
@@ -838,63 +884,19 @@ public class RouteController {
         "deleted", true, "userId", userId, "transactionId", transactionId));
   }
 
-  /**
-   * Deletes a transaction via GET (testing).
-   *
-   * @param userId user id
-   * @param transactionId transaction id
-   * @return plain text result
-   */
-  @GetMapping("/users/{userId}/deletetransaction/{transactionId}")
-  public String deleteTransactionViaGet(
-      @PathVariable final UUID userId,
-      @PathVariable final UUID transactionId) {
-
-    if (LOGGER.isLoggable(Level.INFO)) {
-      LOGGER.info("GET /users/" + userId + "/deletetransaction/" 
-          + transactionId + " called - Deleting via GET.");
-    }
-
-    if (!mockApiService.getUser(userId).isPresent()) {
-      if (LOGGER.isLoggable(Level.WARNING)) {
-        LOGGER.warning("Cannot delete via GET - user not found: " + userId);
-      }
-      return "Error: User " + userId + NF_SUFFIX;
-    }
-
-    final Optional<Transaction> txOpt = mockApiService.getTransaction(transactionId);
-    final boolean belongsToUser = txOpt.map(t -> t.getUserId().equals(userId)).orElse(false);
-    if (!belongsToUser) {
-      if (LOGGER.isLoggable(Level.WARNING)) {
-        LOGGER.warning("Cannot delete via GET - transaction not found: " + transactionId);
-      }
-      return "Error: Transaction " + transactionId + " not found for user " + userId;
-    }
-
-    final boolean deleted = mockApiService.deleteTransaction(transactionId);
-    if (!deleted) {
-      if (LOGGER.isLoggable(Level.WARNING)) {
-        LOGGER.warning("Transaction deletion via GET failed: " + transactionId);
-      }
-      return "Error: Failed to delete transaction " + transactionId;
-    }
-
-    if (LOGGER.isLoggable(Level.INFO)) {
-      LOGGER.info("Transaction deleted successfully via GET for user " 
-          + userId + ": " + transactionId);
-    }
-    return "Transaction deleted successfully!";
-  }
 
   // ---------------------------------------------------------------------------
   // Budget & Analytics
   // ---------------------------------------------------------------------------
 
   /**
-   * Budget page.
+   * Displays an HTML page for budget management showing current budget status,
+   * spending totals, and links to various financial reports.
+   * Includes a form for updating the user's budget.
    *
-   * @param userId user id
-   * @return HTML page
+   * @param userId The unique identifier of the user whose budget page to display.
+   * @return An HTML page containing budget information and management tools.
+   * @throws NoSuchElementException if the user is not found.
    */
   @GetMapping(value = "/users/{userId}/budget", produces = MediaType.TEXT_HTML_VALUE)
   public String budgetManagement(@PathVariable final UUID userId) {
@@ -938,11 +940,14 @@ public class RouteController {
   }
 
   /**
-   * Updates budget via JSON.
+   * Updates a user's budget using JSON input.
+   * Accepts a map that may contain budget-related fields such as "budget" (total budget amount).
    *
-   * @param userId user id
-   * @param budgetUpdate map with fields
-   * @return budget report
+   * @param userId The unique identifier of the user whose budget to update.
+   * @param budgetUpdate A map containing budget fields to update.
+   * @return A map containing the updated budget report with keys such as "totalSpent",
+   *         "remaining", and other budget statistics.
+   * @throws NoSuchElementException if the user is not found.
    */
   @PutMapping(
       value = "/users/{userId}/budget",
@@ -970,11 +975,13 @@ public class RouteController {
   }
 
   /**
-   * Updates budget via form; returns HTML.
+   * Updates a user's budget using HTML form data.
+   * Returns an HTML confirmation page showing the new budget amount.
    *
-   * @param userId user id
-   * @param budget new budget
-   * @return HTML confirmation
+   * @param userId The unique identifier of the user whose budget to update.
+   * @param budget The new budget amount to set.
+   * @return ResponseEntity containing an HTML success page confirming the budget update.
+   * @throws NoSuchElementException if the user is not found.
    */
   @PostMapping(
       value = "/users/{userId}/update-budget",
@@ -1008,10 +1015,13 @@ public class RouteController {
   }
 
   /**
-   * Weekly summary.
+   * Generates a weekly summary of transactions for a user.
+   * Includes transactions from the last 7 days and calculates the weekly spending total.
    *
-   * @param userId user id
-   * @return JSON weekly summary
+   * @param userId The unique identifier of the user whose weekly summary to generate.
+   * @return A map containing keys: "username", "weeklyTotal" (double), "transactionCount" (int),
+   *         and "transactions" (list of Transaction objects).
+   * @throws NoSuchElementException if the user is not found.
    */
   @GetMapping(value = "/users/{userId}/weekly-summary", produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> weeklySummary(@PathVariable final UUID userId) {
@@ -1044,10 +1054,13 @@ public class RouteController {
   }
 
   /**
-   * Monthly summary.
+   * Generates a monthly summary of transactions for a user.
+   * Provides aggregated spending data for the current month.
    *
-   * @param userId user id
-   * @return JSON monthly summary
+   * @param userId The unique identifier of the user whose monthly summary to generate.
+   * @return A map containing a "summary" key with monthly transaction data,
+   *         or an empty map if no summary is available.
+   * @throws NoSuchElementException if the user is not found.
    */
   @GetMapping(
       value = "/users/{userId}/monthly-summary",
@@ -1076,14 +1089,16 @@ public class RouteController {
 
     return response;
   }
-  
-  /**
-   * Budget report JSON.
-   *
-   * @param userId user id
-   * @return JSON budget report
-   */
 
+  /**
+   * Retrieves a detailed budget report for a user in JSON format.
+   * Includes total budget, total spent, remaining budget, and other financial metrics.
+   *
+   * @param userId The unique identifier of the user whose budget report to retrieve.
+   * @return A map containing budget statistics with keys such as "totalSpent", "remaining",
+   *         and other relevant financial data.
+   * @throws NoSuchElementException if the user is not found.
+   */
   @GetMapping(
       value = "/users/{userId}/budget-report",
       produces = MediaType.APPLICATION_JSON_VALUE)
@@ -1109,27 +1124,29 @@ public class RouteController {
   // ---------------------------------------------------------------------------
 
   /**
-   * 404 handler.
+   * Exception handler for resource not found errors.
+   * Returns a JSON error response with HTTP status 404 (NOT_FOUND).
    *
-   * @param exception exception
-   * @return JSON error
+   * @param exception The NoSuchElementException containing the error message.
+   * @return ResponseEntity containing a map with an "error" key and the exception message.
    */
   @ExceptionHandler(NoSuchElementException.class)
   public ResponseEntity<Map<String, String>> handleNotFound(
-        final NoSuchElementException exception) {
+      final NoSuchElementException exception) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .body(Map.of("error", exception.getMessage()));
   }
 
   /**
-   * 400 handler.
+   * Exception handler for invalid request data or parameters.
+   * Returns a JSON error response with HTTP status 400 (BAD_REQUEST).
    *
-   * @param exception exception
-   * @return JSON error
+   * @param exception The IllegalArgumentException containing the error message.
+   * @return ResponseEntity containing a map with an "error" key and the exception message.
    */
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<Map<String, String>> handleBadRequest(
-        final IllegalArgumentException exception) {
+      final IllegalArgumentException exception) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(Map.of("error", exception.getMessage()));
   }
