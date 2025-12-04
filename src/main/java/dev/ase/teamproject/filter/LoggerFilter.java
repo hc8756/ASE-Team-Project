@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
  * Logs all incoming API requests with client IP, method, endpoint, and timestamp.
  */
 @Component
+@SuppressWarnings({
+    "PMD.SystemPrintln", // Using System.out for simplicity in this example
+})
 public class LoggerFilter implements Filter {
   
   /** {@inheritDoc} */

@@ -3,12 +3,12 @@ package dev.ase.teamproject.controller;
 import dev.ase.teamproject.model.Transaction;
 import dev.ase.teamproject.model.User;
 import dev.ase.teamproject.service.MockApiService;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -34,9 +34,9 @@ import org.springframework.web.bind.annotation.RestController;
     "PMD.TooManyMethods", // Many endpoints in one controller
     "PMD.OnlyOneReturn", // Multiple return statements for clarity
     "PMD.AvoidCatchingGenericException", // Catching RuntimeException for logging
-    "PMD.CommentSize" // Comments enhance understanding
+    "PMD.CommentSize", // Comments enhance understanding
+    "PMD.CognitiveComplexity" // Complexity due to branching for error handling
 })
-
 public class RouteController {
 
   /** Class logger. */
@@ -86,6 +86,9 @@ public class RouteController {
 
   /** Common string literal. */
   private static final String POST_USERS = "POST /users/";
+
+  /** Common string literal. */
+  private static final String USER_CR_FAIL = "User Creation Failed";
 
   /** Service layer. */
   private final MockApiService mockApiService;
@@ -189,41 +192,48 @@ public class RouteController {
       value = "/users",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
+  @SuppressWarnings("PMD.AvoidThrowingRawExceptionTypes")
   public ResponseEntity<User> createUserJson(@RequestBody final User user) {
+    if (LOGGER.isLoggable(Level.INFO)) {
+      LOGGER.info("POST /users called - Creating new user via JSON: " + user.getUsername());
+    }
+    if (user.getUsername() == null) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Username field is required.");
+      }
+      throw new RuntimeException(
+          "Failed to create user", new IllegalArgumentException("Username field is required"));
+    }
+    if (user.getEmail() == null) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Email field is required.");
+      }
+      throw new RuntimeException(
+          "Failed to create user", new IllegalArgumentException("Email field is required"));
+    }
     try {
-      if (LOGGER.isLoggable(Level.INFO)) {
-        LOGGER.info("POST /users called - Creating new user via JSON: " + user.getUsername());
-      }
-      if (user.getUsername() == null) {
-        throw new IllegalArgumentException("Username field is required");
-      }
-      if (user.getEmail() == null) {
-        throw new IllegalArgumentException("Email field is required");
-      }
-      if (mockApiService.isUsernameExists(user.getUsername(), null)) {
-        LOGGER.warning("Duplicate username violation (JSON): " + user.getUsername());
-        throw new IllegalArgumentException("Username already exists: " + user.getUsername());
-      }
-      if (mockApiService.isEmailExists(user.getEmail(), null)) {
-        LOGGER.warning("Duplicate email violation (JSON): " + user.getEmail());
-        throw new IllegalArgumentException("Email already exists: " + user.getEmail());
-      }
       final User saved = mockApiService.addUser(user);
       return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     } catch (DataIntegrityViolationException e) {
-      String errorMessage = e.getMostSpecificCause().getMessage();
+      final String errorMessage = e.getMostSpecificCause().getMessage();
       if (errorMessage.contains("users_email_key")) {
-        LOGGER.warning("Duplicate email violation: " + user.getEmail());
-        throw new IllegalArgumentException("Email already exists: " + user.getEmail());
+        if (LOGGER.isLoggable(Level.WARNING)) {
+          LOGGER.warning("Duplicate email violation: " + user.getEmail());
+        }
+        throw new IllegalArgumentException("Email already exists: " + user.getEmail(), e);
       } else if (errorMessage.contains("users_username_key")) {
-        LOGGER.warning("Duplicate username violation: " + user.getUsername());
-        throw new IllegalArgumentException("Username already exists: " + user.getUsername());
+        if (LOGGER.isLoggable(Level.WARNING)) {
+          LOGGER.warning("Duplicate username violation: " + user.getUsername());
+        }
+        throw new IllegalArgumentException("Username already exists: " + user.getUsername(), e);
       } else {
-        LOGGER.warning("Data integrity violation: " + errorMessage);
-        throw new IllegalArgumentException("Data integrity violation");
+        if (LOGGER.isLoggable(Level.WARNING)) {
+          LOGGER.warning("Data integrity violation: " + errorMessage);
+        }
+        throw new IllegalArgumentException("Data integrity violation", e);
       }
     } catch (Exception e) {
-      throw new RuntimeException("Failed to create user", e);
+      throw new IllegalStateException("Failed to create user", e);
     }
   }
 
@@ -249,13 +259,13 @@ public class RouteController {
     // Check if username and email already exist
     if (mockApiService.isUsernameExists(username, null)) {
       final String html = HTML_OPEN
-          + H2_OPEN + "User Creation Failed" + H2_CLOSE
+          + H2_OPEN + USER_CR_FAIL + H2_CLOSE
           + "<p>Username already in use</p>"
           + HTML_CLOSE;
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(html);
     } else if (mockApiService.isEmailExists(email, null)) {
       final String html = HTML_OPEN
-          + H2_OPEN + "User Creation Failed" + H2_CLOSE
+          + H2_OPEN + USER_CR_FAIL + H2_CLOSE
           + "<p>User email already in use</p>"
           + HTML_CLOSE;
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(html);
@@ -311,11 +321,15 @@ public class RouteController {
 
     // Check if username and email already exist
     if (mockApiService.isUsernameExists(userUpdates.getUsername(), userId)) {
-      LOGGER.warning("Duplicate username violation: " + userUpdates.getUsername());
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Duplicate username violation: " + userUpdates.getUsername());
+      }
       throw new IllegalArgumentException("Username already exists: " + userUpdates.getUsername());
     }
     if (mockApiService.isEmailExists(userUpdates.getEmail(), userId)) {
-      LOGGER.warning("Duplicate email violation: " + userUpdates.getEmail());
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Duplicate email violation: " + userUpdates.getEmail());
+      }
       throw new IllegalArgumentException("Email already exists: " + userUpdates.getEmail());
     }
 
@@ -367,13 +381,13 @@ public class RouteController {
     }
     if (mockApiService.isUsernameExists(username, userId)) {
       final String html = HTML_OPEN
-          + H2_OPEN + "User Creation Failed" + H2_CLOSE
+          + H2_OPEN + USER_CR_FAIL + H2_CLOSE
           + "<p>Username already in use</p>"
           + HTML_CLOSE;
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(html);
     } else if (mockApiService.isEmailExists(email, userId)) {
       final String html = HTML_OPEN
-          + H2_OPEN + "User Creation Failed" + H2_CLOSE
+          + H2_OPEN + USER_CR_FAIL + H2_CLOSE
           + "<p>User email already in use</p>"
           + HTML_CLOSE;
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(html);
@@ -616,7 +630,9 @@ public class RouteController {
       }
       return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     } catch (Exception e) {
-      LOGGER.warning("Transaction creation failed: " + e.getMessage());
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Transaction creation failed: " + e.getMessage());
+      }
       throw e;
     }
   }
@@ -723,7 +739,9 @@ public class RouteController {
       }
       return ResponseEntity.ok(updated.get());
     } catch (Exception e) {
-      LOGGER.warning("Transaction creation failed: " + e.getMessage());
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.warning("Transaction creation failed: " + e.getMessage());
+      }
       throw e;
     }
   }
@@ -1016,21 +1034,21 @@ public class RouteController {
           + " with " + wkTransactions.size() + " transactions.");
     }
 
-    Map<String, Object> response = new HashMap<>();
+    final Map<String, Object> response = new ConcurrentHashMap<>();
     response.put("username", user.getUsername());
     response.put("weeklyTotal", weeklyTotal);
     response.put("transactionCount", wkTransactions.size());
     response.put("transactions", wkTransactions);
-    
+
     return response;
   }
+
   /**
    * Monthly summary.
    *
    * @param userId user id
    * @return JSON monthly summary
    */
-  
   @GetMapping(
       value = "/users/{userId}/monthly-summary",
       produces = MediaType.APPLICATION_JSON_VALUE
@@ -1050,12 +1068,15 @@ public class RouteController {
     if (LOGGER.isLoggable(Level.INFO)) {
       LOGGER.info("Monthly summary generated successfully for user " + userId);
     }
-    
-    Map<String, Object> response = new HashMap<>();
-    response.put("summary", summary);
-    
+
+    final Map<String, Object> response = new ConcurrentHashMap<>();
+    if (summary != null) {
+      response.put("summary", summary);
+    }
+
     return response;
   }
+  
   /**
    * Budget report JSON.
    *

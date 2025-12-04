@@ -16,19 +16,24 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Test Plan / Equivalence Partitions for Transaction (POJO / Data Class)
- * Class Under Test: dev.ase.teamproject.model.Transaction
- * This plan covers the unit tests for the Transaction model. Since this is a
+ *
+ * <p>Class Under Test: dev.ase.teamproject.model.Transaction
+ *
+ * <p>This plan covers the unit tests for the Transaction model. Since this is a
  * data class, testing focuses on constructors, getter/setter pairs, and
  * the branch logic within business methods (like compareTo, equals, etc.).
- * 1. Transaction() (Default Constructor)
+ *
+ * <p>1. Transaction() (Default Constructor)
  * - P1: (Valid) Call constructor.
  * - Expects: All fields null or 0.0.
  * - Covered by: constructor_defaultConstructor_initializesNullOrZeroFields
- * 2. Transaction(userId, amount, category, description) (Parameterized)
+ *
+ * <p>2. Transaction(userId, amount, category, description) (Parameterized)
  * - P1: (Valid) Call with valid data.
  * - Expects: Fields are set, description is handled by setDescription.
  * - Covered by: constructor_parameterizedConstructor_setsProvidedValues
- * 3. setDescription(String description)
+ *
+ * <p>3. setDescription(String description)
  * - P1: (Valid) Normal string.
  * - Covered by: setDescription_validString_descriptionIsUpdated
  * - P2: (Valid, Boundary) Empty string "".
@@ -37,14 +42,16 @@ import org.junit.jupiter.api.Test;
  * - Covered by: setDescription_withWhitespaceOnly_setsEmptyString
  * - P4: (Invalid, Branch) null input (triggers null check).
  * - Covered by: setDescription_withNull_setsEmptyString
- * 4. setTimestamp(LocalDateTime timestamp)
+ *
+ * <p>4. setTimestamp(LocalDateTime timestamp)
  * - P1: (Valid, Branch) timestamp != null.
  * - Expects: this.timestamp and this.date are set.
  * - Covered by: setTimestamp_validDateTime_timestampStoredCorrectly
  * - P2: (Invalid, Branch) timestamp == null.
  * - Expects: this.timestamp is set to null, this.date is unchanged.
  * - Covered by: setTimestamp_withNull_setsTimestampToNull_leavesDateUnchanged
- * 5. setDate(LocalDate date)
+ *
+ * <p>5. setDate(LocalDate date)
  * - P1: (Valid, Branch) date != null && this.timestamp == null.
  * - Expects: date is set, timestamp is set to date.atStartOfDay().
  * - Covered by: setDate_validDateTimestampNull_returnsDateStartOfDay
@@ -54,14 +61,16 @@ import org.junit.jupiter.api.Test;
  * - P3: (Invalid, Branch) date == null.
  * - Expects: date is set to null (timestamp remains).
  * - Covered by: setDate_nullDate_dateIsNull
- * 6. effectiveInstant()
+ *
+ * <p>6. effectiveInstant()
  * - P1: (Branch) timestamp != null.
  * - Covered by: effectiveInstant_withTimestamp_returnsSameTimestamp
  * - P2: (Branch) timestamp == null && date != null.
  * - Covered by: effectiveInstant_withDateOnly_returnsDateStartOfDay
  * - P3: (Branch) timestamp == null && date == null.
  * - Covered by: effectiveInstant_bothTimestampAndDateNull_returnsNull
- * 7. compareTo(Transaction other)
+ *
+ * <p>7. compareTo(Transaction other)
  * - P1: (Invalid) other == null.
  * - Covered by: compareTo_nullOther_returnsPositive
  * - P2: (Branch) Different non-null instants (cmp != 0).
@@ -80,7 +89,8 @@ import org.junit.jupiter.api.Test;
  * - Covered by: compareTo_noTime_oneNullId_ordersNullFirst
  * - P9: (Sub-Branch) Same instant, one ID null.
  * - Covered by: compareTo_sameTime_oneNullId_ordersNullFirst
- * 8. equals(Object other)
+ *
+ * <p>8. equals(Object other)
  * - P1: (Branch) this == other.
  * - Covered by: equals_sameObject_returnsTrue
  * - P2: (Branch) other == null.
@@ -97,12 +107,14 @@ import org.junit.jupiter.api.Test;
  * - Covered by: equals_oneNullId_returnsFalse
  * - P8: (Branch) Same class, Objects.equals(null, id).
  * - Covered by: equals_oneNullId_returnsFalse_reverse
- * 9. hashCode()
+ *
+ * <p>9. hashCode()
  * - P1: (Branch) transactionId != null.
  * - Covered by: hashCode_withId_returnsIdHash
  * - P2: (Branch) transactionId == null.
  * - Covered by: hashCode_withNullId_returnsZeroHash
- * 10. toString()
+ *
+ * <p>10. toString()
  * - P1: (Valid) Call on a populated object.
  * - Covered by: toString_containsAllFields
  */

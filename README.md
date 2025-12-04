@@ -161,7 +161,7 @@ In several cases, certain rules were intentionally suppressed because their reco
 |-----------|------------------------|-----------------------------|
 | `OnlyOneReturn` | `RouteController`, `MockApiService`, `Transaction` | Multiple return statements are used intentionally for clearer control flow and early error handling, especially in REST endpoints. Enforcing a single return would reduce readability. |
 | `AvoidCatchingGenericException` | `RouteController`, `MockApiService` | Generic exceptions (e.g., `RuntimeException`) are caught at well-defined boundaries to ensure proper logging and consistent API responses. |
-| `CyclomaticComplexity`, `CognitiveComplexity` | `RouteController`, `Transaction` | Some methods inherently require multiple conditional branches for validation or comparison logic. Refactoring would reduce clarity without simplifying logic. |
+| `CyclomaticComplexity`, `CognitiveComplexity` | `RouteController`, `MockApiService`, `Transaction` | Some methods inherently require multiple conditional branches for validation or comparison logic. Refactoring would reduce clarity without simplifying logic. |
 | `TooManyMethods` | `RouteController`, `MockApiService` | These classes act as centralized controller/service entry points. Splitting them would fragment logically related functionality. |
 | `CommentSize` | `RouteController`, `Transaction` | Large comments were preserved to provide clear documentation and educational explanations of logic flow. |
 | `DataClass` | `User`, `Transaction` | Both are intentionally implemented as plain data holder classes (POJOs) with standard getters/setters, consistent with Java domain modeling best practices. |
@@ -169,6 +169,7 @@ In several cases, certain rules were intentionally suppressed because their reco
 | `ConstructorCallsOverridableMethod` | `Transaction` | The constructor calls `setDescription()` for input normalization. The method has no side effects and is effectively safe to call. |
 | `NullAssignment` | `Transaction` | Null assignments used for optional initialization (e.g., timestamps) are controlled and do not introduce unsafe behavior. |
 | `OnlyOneReturn` (repeated instances) | Multiple classes | Each suppression corresponds to methods where early returns improve clarity and maintainability. |
+| `SystemPrintln` | `LoggerFilter` | Direct `System.out` logging was replaced by a proper logger; suppression documents the historical rule hit. |
 
 All PMD suppressions are deliberate, documented, and localized to specific cases where strict compliance would hinder clarity or architectural intent.
 

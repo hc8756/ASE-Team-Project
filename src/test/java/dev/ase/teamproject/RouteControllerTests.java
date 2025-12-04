@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -38,90 +39,93 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-/*
+/**
  * Test Plan / Equivalence Partitions for RouteController
  *
- * Endpoints:
- * 1. GET  /index
- * - P1: users list non-empty          -> HTML with user entries
- * - Covered by: index_usersExist_returnsHtmlListOfUsers
- * - P2: users list empty              -> HTML with "No users found"
- * - Covered by: index_noUsers_returnsNoUsersMessage
+ * <p>Endpoints:
+ *
+ * <p>1. GET /index 
+ * - P1: users list non-empty -> HTML with user entries
+ *   - Covered by: index_usersExist_returnsHtmlListOfUsers 
+ * - P2: users list empty -> HTML with "No users found" 
+ *   - Covered by: index_noUsers_returnsNoUsersMessage 
  * - P3: service throws RuntimeException -> controller propagates RuntimeException
- * - Covered by: index_serviceThrowsException_throwsRuntimeException
+ *   - Covered by: index_serviceThrowsException_throwsRuntimeException
  *
- * 2. GET  /users/{userId}
- * - P1: userId exists                 -> 200 OK, User in body
- * - Covered by: getUser_existingUser_returnsUserWith200
- * - P2: userId exists, minimal fields -> 200 OK, minimal user
- * - Covered by: getUser_minimalUserFields_returnsUserWith200
- * - P3: userId does not exist         -> NoSuchElementException
- * - Covered by: getUser_nonexistentUser_throwsNoSuchElementException
+ * <p>2. GET /users/{userId}
+ * - P1: userId exists -> 200 OK, User in body
+ *   - Covered by: getUser_existingUser_returnsUserWith200 
+ * - P2: userId exists, minimal fields -> 200 OK, minimal user 
+ *   - Covered by: getUser_minimalUserFields_returnsUserWith200 
+ * - P3: userId does not exist -> NoSuchElementException 
+ *   - Covered by: getUser_nonexistentUser_throwsNoSuchElementException
  *
- * 3. POST /users (JSON)
- * Input User:
- * - username: { non-null, null }
- * - email:    { non-null, null }
- * - DB constraints: { unique OK, duplicate email, duplicate username, other violation }
- * Partitions:
- * - P1: valid user, service OK        -> 201 CREATED, user returned
- * - Covered by: createUserJson_validUser_returnsCreatedUserWith201
+ * <p>3. POST /users (JSON)
+ * - Input User:
+ *   - username: { non-null, null }
+ *   - email: { non-null, null }
+ *   - DB constraints: { unique OK, duplicate email, duplicate username, other violation }
+ * - P1: valid user, service OK -> 201 CREATED, user returned
+ *   - Covered by: createUserJson_validUser_returnsCreatedUserWith201
  * - P2: valid user, service RuntimeException -> wrapped RuntimeException
- * - Covered by: createUserJson_serviceThrowsException_throwsRuntimeException
- * - P3: username == null              -> IllegalArgumentException("Username field is required")
- * - Covered by: createUserJson_missingUsername_throwsIllegalArgumentException
- * - P4: email == null                 -> IllegalArgumentException("Email field is required")
- * - Covered by: createUserJson_missingEmail_throwsIllegalArgumentException
+ *   - Covered by: createUserJson_serviceThrowsException_throwsRuntimeException
+ * - P3: username == null -> IllegalArgumentException("Username field is required")
+ *   - Covered by: createUserJson_missingUsername_throwsIllegalArgumentException
+ * - P4: email == null -> IllegalArgumentException("Email field is required")
+ *   - Covered by: createUserJson_missingEmail_throwsIllegalArgumentException
  * - P5: DataIntegrityViolation: duplicate email -> 
- *   IllegalArgumentException("Email already exists: ...")
- * - Covered by: createUserJson_duplicateEmail_throwsIllegalArgumentException
+ *         IllegalArgumentException("Email already exists: ...")
+ *   - Covered by: createUserJson_duplicateEmail_throwsIllegalArgumentException
  * - P6: DataIntegrityViolation: duplicate username -> 
- *   IllegalArgumentException("Username already exists: ...")
- * - Covered by: createUserJson_duplicateUsername_throwsIllegalArgumentException
+ *         IllegalArgumentException("Username already exists: ...")
+ *   - Covered by: createUserJson_duplicateUsername_throwsIllegalArgumentException
  * - P7: DataIntegrityViolation: other DB constraint -> 
- *   IllegalArgumentException("Data integrity violation")
- * - Covered by: createUserJson_genericDataIntegrityViolation_throwsIllegalArgumentException
+ *         IllegalArgumentException("Data integrity violation")
+ *   - Covered by: createUserJson_genericDataIntegrityViolation_throwsIllegalArgumentException
  *
- * 4. POST /users/form (HTML)
- * - P1: new username/email, OK         -> 201 CREATED HTML success
- * - Covered by: createUserFromFormHtml_validForm_returnsHtmlSuccessWith201
- * - P2: budget == 0 boundary           -> 201 CREATED HTML with $0.00
- * - Covered by: createUserFromFormHtml_zeroBudget_returnsHtmlSuccessWith201
- * - P3: duplicate username             -> 400 BAD_REQUEST, "Username already in use"
- * - Covered by: createUserFromFormHtml_duplicateUsername_returns400
- * - P4: duplicate email                -> 400 BAD_REQUEST, "User email already in use"
- * - Covered by: createUserFromFormHtml_duplicateEmail_returns400
+ * <p>4. POST /users/form (HTML)
+ * - P1: new username/email, OK -> 201 CREATED HTML success
+ *   - Covered by: createUserFromFormHtml_validForm_returnsHtmlSuccessWith201
+ * - P2: budget == 0 boundary -> 201 CREATED HTML with $0.00
+ *   - Covered by: createUserFromFormHtml_zeroBudget_returnsHtmlSuccessWith201
+ * - P3: duplicate username -> 400 BAD_REQUEST, "Username already in use"
+ *   - Covered by: createUserFromFormHtml_duplicateUsername_returns400
+ * - P4: duplicate email -> 400 BAD_REQUEST, "User email already in use"
+ *   - Covered by: createUserFromFormHtml_duplicateEmail_returns400
  * - P5: service throws RuntimeException -> propagated RuntimeException
- * - Covered by: createUserFromFormHtml_serviceThrowsException_throwsRuntimeException
+ *   - Covered by: createUserFromFormHtml_serviceThrowsException_throwsRuntimeException
  *
- * 5. PUT /users/{userId} (JSON)
- * - P1: user exists, all fields updated       -> 200 OK with updated user
- * - Covered by: updateUserJson_existingUser_returnsUpdatedUserWith200
- * - P2: user exists, budget boundary 0.0      -> 200 OK, 0 budget allowed
- * - Covered by: updateUserJson_zeroBudget_returnsUpdatedUserWith200
- * - P3: userId not found                      -> NoSuchElementException
- * - Covered by: updateUserJson_userNotFound_throwsNoSuchElementException
+ * <p>5. PUT /users/{userId} (JSON)
+ * - P1: user exists, all fields updated -> 200 OK with updated user
+ *   - Covered by: updateUserJson_existingUser_returnsUpdatedUserWith200
+ * - P2: user exists, budget boundary 0.0 -> 200 OK, 0 budget allowed
+ *   - Covered by: updateUserJson_zeroBudget_returnsUpdatedUserWith200
+ * - P3: userId not found -> NoSuchElementException
+ *   - Covered by: updateUserJson_userNotFound_throwsNoSuchElementException
  * - P4: duplicate username (isUsernameExists) -> IllegalArgumentException
- * - Covered by: updateUserJson_duplicateUsername_throwsIllegalArgumentException
- * - P5: duplicate email (isEmailExists)       -> IllegalArgumentException
- * - Covered by: updateUserJson_duplicateEmail_throwsIllegalArgumentException
+ *   - Covered by: updateUserJson_duplicateUsername_throwsIllegalArgumentException
+ * - P5: duplicate email (isEmailExists) -> IllegalArgumentException
+ *   - Covered by: updateUserJson_duplicateEmail_throwsIllegalArgumentException
  *
- * 6. Similar equivalence partitions are defined and covered for:
+ * <p>6. Other endpoints (summaries, budgets, transactions)
  * - /users/{userId}/transactions (list, get, create, update, delete)
+ *   - Typical input partitions: valid userId, valid transaction payload
+ *   - Atypical input partitions: boundary amounts, empty lists, edge dates
+ *   - Invalid input partitions: non-existent userId, malformed payload, negative amounts
+ *   - Each case is covered by corresponding tests using the
+ *     "Typical / Atypical / Invalid input" naming pattern.
  * - /users/{userId}/budget, /weekly-summary, /monthly-summary, /budget-report
- * using the "Typical / Atypical / Invalid input" pattern in each test method name.
+ *   - Typical: valid user, normal data ranges
+ *   - Atypical: zero / boundary budgets, empty histories, edge date ranges
+ *   - Invalid: user not found, inconsistent or malformed parameters
+ *   - Each equivalence partition is covered by dedicated tests following the
+ *     same naming convention.
  *
- * Exception Handlers:
+ * <p>Exception Handlers:
  * - handleNotFound: maps NoSuchElementException -> 404 with {"error": msg}
- * - Covered by: handleNotFound_returns404WithErrorMessage
+ *   - Covered by: handleNotFound_returns404WithErrorMessage
  * - handleBadRequest: maps IllegalArgumentException -> 400 with {"error": msg}
- * - Covered by: handleBadRequest_returns400WithErrorMessage
- */
-
-/**
- * This class contains the unit tests for the RouteController class.
- * It uses Mockito to mock the MockApiService dependency, allowing the controller's
- * logic to be tested in isolation.
+ *   - Covered by: handleBadRequest_returns400WithErrorMessage
  */
 @ExtendWith(MockitoExtension.class)
 public class RouteControllerTests {
@@ -155,8 +159,8 @@ public class RouteControllerTests {
   }
 
   /**
-   * Helper method to temporarily set the log level for the controller's logger.
-   * Returns the original level so it can be restored.
+   * Helper method to temporarily set the log level for the controller's
+   * logger. Returns the original level so it can be restored.
    *
    * @param level The new level (e.g., Level.OFF)
    * @return The original Level
@@ -169,21 +173,22 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests GET /index with the logger disabled to cover the 'isLoggable' branch.
+   * Tests GET /index with the logger disabled to cover the 'isLoggable'
+   * branch.
    */
   @Test
   public void index_loggerOff_stillReturnsHtml() {
     Logger logger = Logger.getLogger(RouteController.class.getName());
     Level original = logger.getLevel();
     try {
-      logger.setLevel(Level.OFF);  // isLoggable(Level.INFO) -> false
+      logger.setLevel(Level.OFF); // isLoggable(Level.INFO) -> false
 
       when(mockApiService.viewAllUsers()).thenReturn(List.of());
       ResponseEntity<String> response = routeController.index();
 
       assertEquals(HttpStatus.OK, response.getStatusCode());
     } finally {
-      logger.setLevel(original);   // restore
+      logger.setLevel(original);  // restore
     }
   }
 
@@ -192,7 +197,6 @@ public class RouteControllerTests {
   // These tests ensure all `if (LOGGER.isLoggable(...))` branches are covered
   // by running scenarios with the logger level set to OFF.
   // ---------------------------------------------------------------------------
-
   /**
    * Tests GET /users with the logger disabled.
    */
@@ -299,12 +303,8 @@ public class RouteControllerTests {
     try {
       User saved = new User("Alice", "alice@example.com", 1500.0);
       when(mockApiService.addUser(any(User.class))).thenReturn(saved);
-      ResponseEntity<String> response =
-          routeController.createUserFromFormHtml(
-          "Alice",
-          "alice@example.com",
-          1500.0
-      );
+      ResponseEntity<String> response = routeController.createUserFromFormHtml(
+          "Alice", "alice@example.com", 1500.0);
       assertEquals(HttpStatus.CREATED, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -312,19 +312,16 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests POST /users/form (duplicate username path) with the logger disabled.
+   * Tests POST /users/form (duplicate username path) with the logger
+   * disabled.
    */
   @Test
   public void createUserFromFormHtml_loggerOff_duplicateUsername_returns400() {
     Level originalLevel = setLogLevel(Level.OFF);
     try {
       when(mockApiService.isUsernameExists("Alice", null)).thenReturn(true);
-      ResponseEntity<String> response =
-          routeController.createUserFromFormHtml(
-          "Alice",
-          "alice@example.com",
-          500.0
-      );
+      ResponseEntity<String> response = routeController.createUserFromFormHtml(
+          "Alice", "alice@example.com", 500.0);
       assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -343,7 +340,8 @@ public class RouteControllerTests {
       User updatedUser = new User("Alice", "new@example.com", 1200.0);
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(existingUser));
       when(mockApiService.addUser(updatedUser)).thenReturn(updatedUser);
-      ResponseEntity<User> response = routeController.updateUserJson(userId, updatedUser);
+      ResponseEntity<User> response =
+          routeController.updateUserJson(userId, updatedUser);
       assertEquals(HttpStatus.OK, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -360,17 +358,16 @@ public class RouteControllerTests {
       UUID userId = UUID.randomUUID();
       User updatedUser = new User("Eve", "eve@example.com", 900.0);
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      assertThrows(
-          NoSuchElementException.class,
-          () -> routeController.updateUserJson(userId, updatedUser)
-      );      
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.updateUserJson(userId, updatedUser));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests POST /users/{userId}/update-form (happy path) with the logger disabled.
+   * Tests POST /users/{userId}/update-form (happy path) with the logger
+   * disabled.
    */
   @Test
   public void updateUserFromFormHtml_loggerOff_existingUser_returnsHtmlSuccessWith200() {
@@ -381,13 +378,8 @@ public class RouteControllerTests {
       User savedUser = new User("Alice", "alice_new@example.com", 1200.0);
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(existingUser));
       when(mockApiService.addUser(any(User.class))).thenReturn(savedUser);
-      ResponseEntity<String> response =
-          routeController.updateUserFromFormHtml(
-          userId,
-          "Alice",
-          "alice_new@example.com",
-          1200.0
-      );
+      ResponseEntity<String> response = routeController.updateUserFromFormHtml(
+          userId, "Alice", "alice_new@example.com", 1200.0);
       assertEquals(HttpStatus.OK, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -395,7 +387,8 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests POST /users/{userId}/update-form (not found path) with the logger disabled.
+   * Tests POST /users/{userId}/update-form (not found path) with the logger
+   * disabled.
    */
   @Test
   public void updateUserFromFormHtml_loggerOff_userNotFound_throwsNoSuchElementException() {
@@ -403,15 +396,9 @@ public class RouteControllerTests {
     try {
       UUID userId = UUID.randomUUID();
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      assertThrows(
-          NoSuchElementException.class,
+      assertThrows(NoSuchElementException.class,
           () -> routeController.updateUserFromFormHtml(
-              userId,
-              "Eve",
-              "eve@example.com",
-              100.0
-          )
-      );
+              userId, "Eve", "eve@example.com", 100.0));
     } finally {
       setLogLevel(originalLevel);
     }
@@ -432,7 +419,8 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests GET /users/{userId}/edit-form (happy path) with the logger disabled.
+   * Tests GET /users/{userId}/edit-form (happy path) with the logger
+   * disabled.
    */
   @Test
   public void showEditUserForm_loggerOff_existingUser_returnsPopulatedFormHtml() {
@@ -449,7 +437,8 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests GET /users/{userId}/edit-form (not found path) with the logger disabled.
+   * Tests GET /users/{userId}/edit-form (not found path) with the logger
+   * disabled.
    */
   @Test
   public void showEditUserForm_loggerOff_userNotFound_throwsNoSuchElementException() {
@@ -526,7 +515,8 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests GET /users/{userId}/transactions (happy path) with the logger disabled.
+   * Tests GET /users/{userId}/transactions (happy path) with the logger
+   * disabled.
    */
   @Test
   public void getUserTransactions_loggerOff_existingUser_returnsTransactionsWith200() {
@@ -544,7 +534,8 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests GET /users/{userId}/transactions (user not found path) with the logger disabled.
+   * Tests GET /users/{userId}/transactions (user not found path) with the
+   * logger disabled.
    */
   @Test
   public void getUserTransactions_loggerOff_userDoesNotExist_returns404Error() {
@@ -560,7 +551,8 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests GET /users/{userId}/transactions (service error path) with the logger disabled.
+   * Tests GET /users/{userId}/transactions (service error path) with the
+   * logger disabled.
    */
   @Test
   public void getUserTransactions_loggerOff_serviceThrowsException_returns500Error() {
@@ -579,7 +571,8 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests GET /users/{userId}/transactions/{txId} (happy path) with the logger disabled.
+   * Tests GET /users/{userId}/transactions/{txId} (happy path) with the
+   * logger disabled.
    */
   @Test
   public void getTransaction_loggerOff_existingUserAndTransaction_returnsTransactionWith200() {
@@ -592,7 +585,8 @@ public class RouteControllerTests {
       tx.setTransactionId(transactionId);
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.getTransaction(transactionId)).thenReturn(Optional.of(tx));
-      ResponseEntity<Transaction> response = routeController.getTransaction(userId, transactionId);
+      ResponseEntity<Transaction> response =
+          routeController.getTransaction(userId, transactionId);
       assertEquals(HttpStatus.OK, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -600,8 +594,9 @@ public class RouteControllerTests {
   }
 
   /**
-  * Tests GET /users/{userId}/transactions/{txId} (user not found path) with the logger disabled.
-  */
+   * Tests GET /users/{userId}/transactions/{txId} (user not found path) with
+   * the logger disabled.
+   */
   @Test
   public void getTransaction_loggerOff_userDoesNotExist_throwsNoSuchElementException() {
     Level originalLevel = setLogLevel(Level.OFF);
@@ -609,20 +604,20 @@ public class RouteControllerTests {
       UUID userId = UUID.randomUUID();
       UUID transactionId = UUID.randomUUID();
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      assertThrows(
-          NoSuchElementException.class,
-          () -> routeController.getTransaction(userId, transactionId)
-      );      
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.getTransaction(userId, transactionId));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests POST /users/{userId}/transactions (happy path) with the logger disabled.
+   * Tests POST /users/{userId}/transactions (happy path) with the logger
+   * disabled.
    */
   @Test
-  public void createTransactionJson_loggerOff_allValid_returnsCreatedTransactionWith201() {
+  public void
+      createTransactionJson_loggerOff_validUserAndTransaction_returnsCreatedTransactionWith201() {
     Level originalLevel = setLogLevel(Level.OFF);
     try {
       UUID userId = UUID.randomUUID();
@@ -630,7 +625,7 @@ public class RouteControllerTests {
       Transaction transaction = new Transaction(userId, 75.0, "Food", "Lunch");
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.addTransaction(transaction)).thenReturn(transaction);
-      ResponseEntity<Transaction> response = 
+      ResponseEntity<Transaction> response =
           routeController.createTransactionJson(userId, transaction);
       assertEquals(HttpStatus.CREATED, response.getStatusCode());
     } finally {
@@ -639,7 +634,8 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests POST /users/{userId}/transactions (user not found path) with the logger disabled.
+   * Tests POST /users/{userId}/transactions (user not found path) with the
+   * logger disabled.
    */
   @Test
   public void createTransactionJson_loggerOff_userDoesNotExist_throwsNoSuchElementException() {
@@ -648,15 +644,16 @@ public class RouteControllerTests {
       UUID userId = UUID.randomUUID();
       Transaction transaction = new Transaction(userId, 100.0, "Travel", "Trip");
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      assertThrows(NoSuchElementException.class, () -> routeController
-          .createTransactionJson(userId, transaction));
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.createTransactionJson(userId, transaction));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests POST /users/{userId}/transactions (service error path) with the logger disabled.
+   * Tests POST /users/{userId}/transactions (service error path) with the
+   * logger disabled.
    */
   @Test
   public void createTransactionJson_loggerOff_serviceThrows_propagatesException() {
@@ -668,14 +665,16 @@ public class RouteControllerTests {
           .thenReturn(Optional.of(new User("u", "u@x.com", 100)));
       when(mockApiService.addTransaction(any(Transaction.class)))
           .thenThrow(new RuntimeException("DB insert broke"));
-      assertThrows(RuntimeException.class, () -> routeController.createTransactionJson(userId, tx));
+      assertThrows(RuntimeException.class,
+          () -> routeController.createTransactionJson(userId, tx));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests POST /users/{userId}/transactions/form (happy path) with the logger disabled.
+   * Tests POST /users/{userId}/transactions/form (happy path) with the logger
+   * disabled.
    */
   @Test
   public void createTransactionFromFormHtml_loggerOff_validUser_returnsHtmlSuccessWith201() {
@@ -686,8 +685,8 @@ public class RouteControllerTests {
       Transaction saved = new Transaction(userId, 120.0, "Shopping", "Clothes");
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.addTransaction(any(Transaction.class))).thenReturn(saved);
-      ResponseEntity<String> response = routeController
-          .createTransactionFromFormHtml(userId, "Clothes", 120.0, "Shopping");
+      ResponseEntity<String> response = routeController.createTransactionFromFormHtml(
+          userId, "Clothes", 120.0, "Shopping");
       assertEquals(HttpStatus.CREATED, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -695,16 +694,17 @@ public class RouteControllerTests {
   }
 
   /**
-   * Tests POST /users/{userId}/transactions/form (user not found path) with the logger disabled.
+   * Tests POST /users/{userId}/transactions/form (user not found path) with
+   * the logger disabled.
    */
   @Test
-public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404Error() {
+  public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404Error() {
     Level originalLevel = setLogLevel(Level.OFF);
     try {
       UUID userId = UUID.randomUUID();
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      ResponseEntity<String> response = routeController
-          .createTransactionFromFormHtml(userId, "Test", 40.0, "Misc");
+      ResponseEntity<String> response = routeController.createTransactionFromFormHtml(
+          userId, "Test", 40.0, "Misc");
       assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -712,7 +712,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests POST /users/{userId}/transactions/form (service error path) with the logger disabled.
+   * Tests POST /users/{userId}/transactions/form (service error path) with
+   * the logger disabled.
    */
   @Test
   public void createTransactionFromFormHtml_loggerOff_serviceThrowsException_returns500Error() {
@@ -723,8 +724,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.addTransaction(any(Transaction.class)))
           .thenThrow(new RuntimeException("Database error"));
-      ResponseEntity<String> response = routeController
-          .createTransactionFromFormHtml(userId, "Groceries", 45.0, "Food");
+      ResponseEntity<String> response = routeController.createTransactionFromFormHtml(
+          userId, "Groceries", 45.0, "Food");
       assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -732,10 +733,12 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests PUT /users/{userId}/transactions/{txId} (happy path) with the logger disabled.
+   * Tests PUT /users/{userId}/transactions/{txId} (happy path) with the
+   * logger disabled.
    */
   @Test
-  public void updateTransactionJson_loggerOff_allValid_returnsUpdatedTransaction200() {
+  public void
+      updateTransactionJson_loggerOff_validUserAndTransaction_returnsUpdatedTransactionWith200() {
     Level originalLevel = setLogLevel(Level.OFF);
     try {
       UUID userId = UUID.randomUUID();
@@ -750,8 +753,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       when(mockApiService.getTransaction(transactionId)).thenReturn(Optional.of(existing));
       when(mockApiService.updateTransaction(transactionId, updates))
           .thenReturn(Optional.of(updatedTx));
-      ResponseEntity<Transaction> response = routeController
-          .updateTransactionJson(userId, transactionId, updates);
+      ResponseEntity<Transaction> response =
+          routeController.updateTransactionJson(userId, transactionId, updates);
       assertEquals(HttpStatus.OK, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -759,7 +762,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests PUT /users/{userId}/transactions/{txId} (user not found path) with the logger disabled.
+   * Tests PUT /users/{userId}/transactions/{txId} (user not found path) with
+   * the logger disabled.
    */
   @Test
   public void updateTransactionJson_loggerOff_userDoesNotExist_throwsNoSuchElementException() {
@@ -769,15 +773,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       UUID transactionId = UUID.randomUUID();
       Map<String, Object> updates = new HashMap<>();
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      assertThrows(NoSuchElementException.class, () -> routeController
-          .updateTransactionJson(userId, transactionId, updates));
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.updateTransactionJson(userId, transactionId, updates));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests PUT /users/{userId}/transactions/{txId} (tx not found path) with the logger disabled.
+   * Tests PUT /users/{userId}/transactions/{txId} (tx not found path) with
+   * the logger disabled.
    */
   @Test
   public void updateTransactionJson_loggerOff_transactionMissing_throwsNoSuchElementException() {
@@ -789,15 +794,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       Map<String, Object> updates = new HashMap<>();
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.getTransaction(transactionId)).thenReturn(Optional.empty());
-      assertThrows(NoSuchElementException.class, () -> routeController
-          .updateTransactionJson(userId, transactionId, updates));
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.updateTransactionJson(userId, transactionId, updates));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests GET /users/{userId}/transactions/create-form (happy path) with the logger disabled.
+   * Tests GET /users/{userId}/transactions/create-form (happy path) with the
+   * logger disabled.
    */
   @Test
   public void showCreateTransactionForm_loggerOff_validUser_returnsHtmlForm() {
@@ -814,8 +820,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/transactions/create-form 
-   * (user not found path) with the logger disabled.
+   * Tests GET /users/{userId}/transactions/create-form (user not found path)
+   * with the logger disabled.
    */
   @Test
   public void showCreateTransactionForm_loggerOff_userDoesNotExist_throwsNoSuchElementException() {
@@ -823,15 +829,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     try {
       UUID userId = UUID.randomUUID();
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      assertThrows(NoSuchElementException.class, () -> routeController
-          .showCreateTransactionForm(userId));
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.showCreateTransactionForm(userId));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests DELETE /users/{userId}/transactions/{txId} (happy path) with the logger disabled.
+   * Tests DELETE /users/{userId}/transactions/{txId} (happy path) with the
+   * logger disabled.
    */
   @Test
   public void deleteTransaction_loggerOff_validUserAndTransaction_returns200AndConfirmationMap() {
@@ -854,8 +861,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests DELETE /users/{userId}/transactions/{txId}
-   * (user not found path) with the logger disabled.
+   * Tests DELETE /users/{userId}/transactions/{txId} (user not found path)
+   * with the logger disabled.
    */
   @Test
   public void deleteTransaction_loggerOff_userDoesNotExist_throwsNoSuchElementException() {
@@ -864,20 +871,20 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       UUID userId = UUID.randomUUID();
       UUID transactionId = UUID.randomUUID();
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      assertThrows(
-          NoSuchElementException.class,
-          () -> routeController.deleteTransaction(userId, transactionId)
-      );      
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.deleteTransaction(userId, transactionId));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests DELETE /users/{userId}/transactions/{txId} (tx mismatch path) with the logger disabled.
+   * Tests DELETE /users/{userId}/transactions/{txId} (tx mismatch path) with
+   * the logger disabled.
    */
   @Test
-  public void deleteTransaction_loggerOff_transactionToDiffUser_throwsNoSuchElementException() {
+  public void
+      deleteTransaction_loggerOff_transactionToDifferentUser_throwsNoSuchElementException() {
     Level originalLevel = setLogLevel(Level.OFF);
     try {
       UUID userId = UUID.randomUUID();
@@ -888,17 +895,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       tx.setTransactionId(transactionId);
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.getTransaction(transactionId)).thenReturn(Optional.of(tx));
-      assertThrows(
-          NoSuchElementException.class,
-          () -> routeController.deleteTransaction(userId, transactionId)
-      );      
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.deleteTransaction(userId, transactionId));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests DELETE /users/{userId}/transactions/{txId} (delete fails path) with the logger disabled.
+   * Tests DELETE /users/{userId}/transactions/{txId} (delete fails path) with
+   * the logger disabled.
    */
   @Test
   public void deleteTransaction_loggerOff_deleteFails_throwsNoSuchElementException() {
@@ -912,17 +918,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.getTransaction(transactionId)).thenReturn(Optional.of(tx));
       when(mockApiService.deleteTransaction(transactionId)).thenReturn(false);
-      assertThrows(
-          NoSuchElementException.class,
-          () -> routeController.deleteTransaction(userId, transactionId)
-      );      
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.deleteTransaction(userId, transactionId));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests GET /users/{userId}/deletetransaction/{txId} (happy path) with the logger disabled.
+   * Tests GET /users/{userId}/deletetransaction/{txId} (happy path) with the
+   * logger disabled.
    */
   @Test
   public void deleteTransactionViaGet_loggerOff_validUserAndTransaction_returnsSuccessMessage() {
@@ -944,8 +949,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/deletetransaction/{txId} 
-   * (user not found path) with the logger disabled.
+   * Tests GET /users/{userId}/deletetransaction/{txId} (user not found path)
+   * with the logger disabled.
    */
   @Test
   public void deleteTransactionViaGet_loggerOff_userDoesNotExist_returnsUserNotFoundError() {
@@ -962,10 +967,11 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/deletetransaction/{txId} (tx mismatch path) with the logger disabled.
+   * Tests GET /users/{userId}/deletetransaction/{txId} (tx mismatch path)
+   * with the logger disabled.
    */
   @Test
-  public void deleteTransactionViaGet_loggerOff_DiffUser_returnsTransactionNotFoundError() {
+  public void deleteTxViaGet_loggerOff_txToDiffUser_returnsTxNotFoundError() {
     Level originalLevel = setLogLevel(Level.OFF);
     try {
       UUID userId = UUID.randomUUID();
@@ -977,17 +983,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       when(mockApiService.getTransaction(transactionId)).thenReturn(Optional.of(tx));
       String result = routeController.deleteTransactionViaGet(userId, transactionId);
-      assertTrue(
-          result.contains("Error: Transaction " + transactionId + " not found for user " + userId)
-      );      
+      assertTrue(result.contains(
+          "Error: Transaction " + transactionId + " not found for user " + userId));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests GET /users/{userId}/deletetransaction/{txId} 
-   * (delete fails path) with the logger disabled.
+   * Tests GET /users/{userId}/deletetransaction/{txId} (delete fails path)
+   * with the logger disabled.
    */
   @Test
   public void deleteTransactionViaGet_loggerOff_deleteFails_returnsErrorMessage() {
@@ -1029,7 +1034,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/budget (user not found path) with the logger disabled.
+   * Tests GET /users/{userId}/budget (user not found path) with the logger
+   * disabled.
    */
   @Test
   public void budgetManagement_loggerOff_userNotFound_throwsNoSuchElementException() {
@@ -1053,12 +1059,13 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       UUID userId = UUID.randomUUID();
       User user = new User("Alice", "alice@example.com", 1500.00);
       Map<String, Object> budgetUpdate = Map.of("budget", 2000.00);
-      Map<String, Object> updatedReport = Map.of("totalSpent", 500.00, "remaining", 1500.00);
+      Map<String, Object> updatedReport =
+          Map.of("totalSpent", 500.00, "remaining", 1500.00);
       when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
       doNothing().when(mockApiService).setBudgets(userId, budgetUpdate);
       when(mockApiService.getBudgetReport(userId)).thenReturn(updatedReport);
-      ResponseEntity<Map<String, Object>> response = routeController
-          .updateBudgetJson(userId, budgetUpdate);
+      ResponseEntity<Map<String, Object>> response =
+          routeController.updateBudgetJson(userId, budgetUpdate);
       assertEquals(HttpStatus.OK, response.getStatusCode());
     } finally {
       setLogLevel(originalLevel);
@@ -1066,7 +1073,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests PUT /users/{userId}/budget (user not found path) with the logger disabled.
+   * Tests PUT /users/{userId}/budget (user not found path) with the logger
+   * disabled.
    */
   @Test
   public void updateBudgetJson_loggerOff_userNotFound_throwsNoSuchElementException() {
@@ -1075,17 +1083,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
       UUID userId = UUID.randomUUID();
       Map<String, Object> budgetUpdate = Map.of("budget", 1000.00);
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      assertThrows(
-          NoSuchElementException.class,
-          () -> routeController.updateBudgetJson(userId, budgetUpdate)
-      );      
+      assertThrows(NoSuchElementException.class,
+          () -> routeController.updateBudgetJson(userId, budgetUpdate));
     } finally {
       setLogLevel(originalLevel);
     }
   }
 
   /**
-   * Tests POST /users/{userId}/update-budget (happy path) with the logger disabled.
+   * Tests POST /users/{userId}/update-budget (happy path) with the logger
+   * disabled.
    */
   @Test
   public void updateBudget_loggerOff_validUser_returnsHtmlConfirmation() {
@@ -1103,7 +1110,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests POST /users/{userId}/update-budget (user not found path) with the logger disabled.
+   * Tests POST /users/{userId}/update-budget (user not found path) with the
+   * logger disabled.
    */
   @Test
   public void updateBudget_loggerOff_userNotFound_throwsNoSuchElementException() {
@@ -1111,7 +1119,7 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     try {
       UUID userId = UUID.randomUUID();
       when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
-      assertThrows(NoSuchElementException.class, 
+      assertThrows(NoSuchElementException.class,
           () -> routeController.updateBudget(userId, 1500.00));
     } finally {
       setLogLevel(originalLevel);
@@ -1119,7 +1127,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/weekly-summary (happy path) with the logger disabled.
+   * Tests GET /users/{userId}/weekly-summary (happy path) with the logger
+   * disabled.
    */
   @Test
   public void weeklySummary_loggerOff_withTransactions_rendersTable() {
@@ -1142,7 +1151,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/weekly-summary (user not found path) with the logger disabled.
+   * Tests GET /users/{userId}/weekly-summary (user not found path) with the
+   * logger disabled.
    */
   @Test
   public void weeklySummary_loggerOff_userNotFound_throwsNoSuchElementException() {
@@ -1157,7 +1167,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/monthly-summary (happy path) with the logger disabled.
+   * Tests GET /users/{userId}/monthly-summary (happy path) with the logger
+   * disabled.
    */
   @Test
   public void monthlySummary_loggerOff_validUser_returnsHtmlWithSummaryText() {
@@ -1176,7 +1187,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/monthly-summary (user not found path) with the logger disabled.
+   * Tests GET /users/{userId}/monthly-summary (user not found path) with the
+   * logger disabled.
    */
   @Test
   public void monthlySummary_loggerOff_userNotFound_throwsNoSuchElementException() {
@@ -1191,7 +1203,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/budget-report (happy path) with the logger disabled.
+   * Tests GET /users/{userId}/budget-report (happy path) with the logger
+   * disabled.
    */
   @Test
   public void budgetReport_loggerOff_validUser_returnsJsonBudgetReport() {
@@ -1210,7 +1223,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests GET /users/{userId}/budget-report (user not found path) with the logger disabled.
+   * Tests GET /users/{userId}/budget-report (user not found path) with the
+   * logger disabled.
    */
   @Test
   public void budgetReport_loggerOff_userNotFound_throwsNoSuchElementException() {
@@ -1227,7 +1241,6 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // ---------------------------------------------------------------------------
   // Tests for index
   // ---------------------------------------------------------------------------
-
   /**
    * Tests GET /index when users exist in the database. Expects HTML list.
    */
@@ -1261,7 +1274,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * Tests that GET /index propagates RuntimeExceptions from the service layer.
+   * Tests that GET /index propagates RuntimeExceptions from the service
+   * layer.
    */
   @Test
   public void index_serviceThrowsException_throwsRuntimeException() {
@@ -1275,7 +1289,6 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // ---------------------------------------------------------------------------
   // Tests for getAllUsers (trivial)
   // ---------------------------------------------------------------------------
-
   /**
    * Tests GET /users returns the complete list of users from the service.
    */
@@ -1310,7 +1323,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests GET /users/{userId} for a user with minimal/empty fields.
+   * (Atypical valid input) Tests GET /users/{userId} for a user with
+   * minimal/empty fields.
    */
   @Test
   public void getUser_minimalUserFields_returnsUserWith200() {
@@ -1357,11 +1371,11 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertEquals(user, response.getBody());
   }
+
   /**
    * (Atypical valid input) Tests POST /users with an empty string for email,
    * which is distinct from a null email.
    */
-
   @Test
   public void createUserJson_missingEmail_returnsCreatedUserWith201() {
     User user = new User("Bob", "", 1000.0);
@@ -1374,22 +1388,23 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests POST /users when the service layer throws a generic exception.
+   * (Invalid input) Tests POST /users when the service layer throws a generic
+   * exception.
    */
   @Test
   public void createUserJson_serviceThrowsException_throwsRuntimeException() {
     User user = new User("Charlie", "charlie@example.com", 800.0);
     when(mockApiService.addUser(user)).thenThrow(new RuntimeException("Database error"));
-  
+
     RuntimeException thrown = assertThrows(
         RuntimeException.class,
         () -> routeController.createUserJson(user)
     );
-  
+
     // Match the controller behavior: it wraps with "Failed to create user"
     assertEquals("Failed to create user", thrown.getMessage());
   }
-  
+
   /**
    * (Invalid input) Tests POST /users when the 'username' field is null.
    */
@@ -1431,13 +1446,14 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests POST /users when a duplicate email violation occurs.
+   * (Invalid input) Tests POST /users when a duplicate email violation
+   * occurs.
    */
   @Test
   public void createUserJson_duplicateEmail_throwsIllegalArgumentException() {
     User user = new User("Alice", "alice@example.com", 1000.0);
-    DataIntegrityViolationException ex =
-        new DataIntegrityViolationException(
+    DataIntegrityViolationException ex
+        = new DataIntegrityViolationException(
             "constraint violation",
             new RuntimeException("users_email_key")
         );
@@ -1453,13 +1469,14 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests POST /users when a duplicate username violation occurs.
+   * (Invalid input) Tests POST /users when a duplicate username violation
+   * occurs.
    */
   @Test
   public void createUserJson_duplicateUsername_throwsIllegalArgumentException() {
     User user = new User("Alice", "alice@example.com", 1000.0);
-    DataIntegrityViolationException ex =
-        new DataIntegrityViolationException(
+    DataIntegrityViolationException ex
+        = new DataIntegrityViolationException(
             "constraint violation",
             new RuntimeException("users_username_key")
         );
@@ -1475,13 +1492,14 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests POST /users for a generic, non-specific data integrity violation.
+   * (Invalid input) Tests POST /users for a generic, non-specific data
+   * integrity violation.
    */
   @Test
   public void createUserJson_genericDataIntegrityViolation_throwsIllegalArgumentException() {
     User user = new User("Alice", "alice@example.com", 1000.0);
-    DataIntegrityViolationException ex =
-        new DataIntegrityViolationException(
+    DataIntegrityViolationException ex
+        = new DataIntegrityViolationException(
             "constraint violation",
             new RuntimeException("some_other_constraint")
         );
@@ -1495,20 +1513,20 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
 
     assertEquals("Data integrity violation", thrown.getMessage());
   }
+
   // ---------------------------------------------------------------------------
   // Tests for createUserFromFormHtml
   // ---------------------------------------------------------------------------
   /**
    * (Typical valid input) Tests POST /users/form with valid, unique data.
    */
-
   @Test
   public void createUserFromFormHtml_validForm_returnsHtmlSuccessWith201() {
     User saved = new User("Alice", "alice@example.com", 1500.0);
     when(mockApiService.addUser(any(User.class))).thenReturn(saved);
 
-    ResponseEntity<String> response =
-        routeController.createUserFromFormHtml("Alice", "alice@example.com", 1500.0);
+    ResponseEntity<String> response
+        = routeController.createUserFromFormHtml("Alice", "alice@example.com", 1500.0);
 
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertTrue(response.getBody().contains("User Created Successfully"));
@@ -1523,15 +1541,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     User saved = new User("Bob", "bob@example.com", 0.0);
     when(mockApiService.addUser(any(User.class))).thenReturn(saved);
 
-    ResponseEntity<String> response =
-        routeController.createUserFromFormHtml("Bob", "bob@example.com", 0.0);
+    ResponseEntity<String> response
+        = routeController.createUserFromFormHtml("Bob", "bob@example.com", 0.0);
 
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertTrue(response.getBody().contains("$0.00"));
   }
 
   /**
-   * (Invalid input) Tests POST /users/form when the service throws an exception.
+   * (Invalid input) Tests POST /users/form when the service throws an
+   * exception.
    */
   @Test
   public void createUserFromFormHtml_serviceThrowsException_throwsRuntimeException() {
@@ -1553,8 +1572,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   public void createUserFromFormHtml_duplicateUsername_returns400() {
     when(mockApiService.isUsernameExists("Alice", null)).thenReturn(true);
 
-    ResponseEntity<String> response =
-        routeController.createUserFromFormHtml("Alice", "alice@example.com", 500.0);
+    ResponseEntity<String> response
+        = routeController.createUserFromFormHtml("Alice", "alice@example.com", 500.0);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     assertTrue(response.getBody().contains("Username already in use"));
@@ -1568,20 +1587,19 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.isUsernameExists("Alice", null)).thenReturn(false);
     when(mockApiService.isEmailExists("alice@example.com", null)).thenReturn(true);
 
-    ResponseEntity<String> response =
-        routeController.createUserFromFormHtml("Alice", "alice@example.com", 500.0);
+    ResponseEntity<String> response
+        = routeController.createUserFromFormHtml("Alice", "alice@example.com", 500.0);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     assertTrue(response.getBody().contains("User email already in use"));
   }
 
-
   // ---------------------------------------------------------------------------
   // Tests for updateUserJson
   // ---------------------------------------------------------------------------
-  
   /**
-   * Tests PUT /users/{userId} fallback logic: empty username string should use existing username.
+   * Tests PUT /users/{userId} fallback logic: empty username string should
+   * use existing username.
    */
   @Test
   public void updateUserJson_emptyUsername_fallsBackToExisting() {
@@ -1599,9 +1617,10 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
 
     assertEquals("originalName", result.getUsername());
   }
-  
+
   /**
-   * Tests PUT /users/{userId} fallback logic: empty email string should use existing email.
+   * Tests PUT /users/{userId} fallback logic: empty email string should use
+   * existing email.
    */
   @Test
   public void updateUserJson_emptyEmail_fallsBackToExisting() {
@@ -1621,10 +1640,10 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
 
     assertEquals("old@x.com", updated.getEmail());
   }
-  
+
   /**
-   * Tests PUT /users/{userId} fallback logic: 
-   * empty strings and 0.0 budget should use all existing data.
+   * Tests PUT /users/{userId} fallback logic: empty strings and 0.0 budget
+   * should use all existing data.
    */
   @Test
   public void updateUserJson_allFieldsEmpty_fallbacksToExisting() {
@@ -1645,9 +1664,9 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     assertEquals(100.0, out.getBudget());
   }
 
-
   /**
-   * (Typical valid input) Tests PUT /users/{userId} with a valid update payload.
+   * (Typical valid input) Tests PUT /users/{userId} with a valid update
+   * payload.
    */
   @Test
   public void updateUserJson_existingUser_returnsUpdatedUserWith200() {
@@ -1744,14 +1763,13 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     assertEquals("Email already exists: new@example.com", ex.getMessage());
   }
 
-
   // ---------------------------------------------------------------------------
   // Tests for updateUserFromFormHtml
   // ---------------------------------------------------------------------------
-  
   /**
-  * (Invalid input) Tests POST /users/{userId}/update-form with a duplicate email.
-  */
+   * (Invalid input) Tests POST /users/{userId}/update-form with a duplicate
+   * email.
+   */
   @Test
   public void updateUserFromFormHtml_duplicateEmail_returns400() {
     UUID userId = UUID.randomUUID();
@@ -1759,15 +1777,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.isUsernameExists("Alice", userId)).thenReturn(false);
     when(mockApiService.isEmailExists("alice@x.com", userId)).thenReturn(true);
 
-    ResponseEntity<String> response =
-        routeController.updateUserFromFormHtml(userId, "Alice", "alice@x.com", 500);
+    ResponseEntity<String> response
+        = routeController.updateUserFromFormHtml(userId, "Alice", "alice@x.com", 500);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     assertTrue(response.getBody().contains("User email already in use"));
   }
-  
+
   /**
-   * (Invalid input) Tests POST /users/{userId}/update-form with a duplicate username.
+   * (Invalid input) Tests POST /users/{userId}/update-form with a duplicate
+   * username.
    */
   @Test
   public void updateUserFromFormHtml_duplicateUsername_returns400() {
@@ -1775,15 +1794,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
 
     when(mockApiService.isUsernameExists("Alice", userId)).thenReturn(true);
 
-    ResponseEntity<String> response =
-        routeController.updateUserFromFormHtml(userId, "Alice", "alice@x.com", 500);
+    ResponseEntity<String> response
+        = routeController.updateUserFromFormHtml(userId, "Alice", "alice@x.com", 500);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     assertTrue(response.getBody().contains("Username already in use"));
   }
 
   /**
-   * (Typical valid input) Tests POST /users/{userId}/update-form for an existing user.
+   * (Typical valid input) Tests POST /users/{userId}/update-form for an
+   * existing user.
    */
   @Test
   public void updateUserFromFormHtml_existingUser_returnsHtmlSuccessWith200() {
@@ -1794,8 +1814,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.getUser(userId)).thenReturn(Optional.of(existingUser));
     when(mockApiService.addUser(any(User.class))).thenReturn(savedUser);
 
-    ResponseEntity<String> response =
-        routeController.updateUserFromFormHtml(userId, "Alice", "alice_new@example.com", 1200.0);
+    ResponseEntity<String> response
+        = routeController.updateUserFromFormHtml(userId, "Alice", "alice_new@example.com", 1200.0);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertTrue(response.getBody().contains("User Updated Successfully!"));
@@ -1805,7 +1825,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests POST /users/{userId}/update-form with a 0.0 budget.
+   * (Atypical valid input) Tests POST /users/{userId}/update-form with a 0.0
+   * budget.
    */
   @Test
   public void updateUserFromFormHtml_zeroBudget_returnsHtmlWithZeroBudget() {
@@ -1816,15 +1837,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.getUser(userId)).thenReturn(Optional.of(existingUser));
     when(mockApiService.addUser(any(User.class))).thenReturn(savedUser);
 
-    ResponseEntity<String> response =
-        routeController.updateUserFromFormHtml(userId, "Bob", "bob@example.com", 0.0);
+    ResponseEntity<String> response
+        = routeController.updateUserFromFormHtml(userId, "Bob", "bob@example.com", 0.0);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertTrue(response.getBody().contains("$0.00"));
   }
 
   /**
-   * (Invalid input) Tests POST /users/{userId}/update-form for a non-existent user.
+   * (Invalid input) Tests POST /users/{userId}/update-form for a non-existent
+   * user.
    */
   @Test
   public void updateUserFromFormHtml_userNotFound_throwsNoSuchElementException() {
@@ -1860,7 +1882,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // Tests for showEditUserForm
   // ---------------------------------------------------------------------------
   /**
-   * (Typical valid input) Tests GET /users/{userId}/edit-form populates the form correctly.
+   * (Typical valid input) Tests GET /users/{userId}/edit-form populates the
+   * form correctly.
    */
   @Test
   public void showEditUserForm_existingUser_returnsPopulatedFormHtml() {
@@ -1879,7 +1902,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests GET /users/{userId}/edit-form with empty user fields.
+   * (Atypical valid input) Tests GET /users/{userId}/edit-form with empty
+   * user fields.
    */
   @Test
   public void showEditUserForm_userWithEmptyFields_returnsValidFormHtml() {
@@ -1896,7 +1920,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests GET /users/{userId}/edit-form for a non-existent user.
+   * (Invalid input) Tests GET /users/{userId}/edit-form for a non-existent
+   * user.
    */
   @Test
   public void showEditUserForm_userNotFound_throwsNoSuchElementException() {
@@ -1930,7 +1955,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests DELETE /users/{userId} when the user is already deleted.
+   * (Atypical valid input) Tests DELETE /users/{userId} when the user is
+   * already deleted.
    */
   @Test
   public void deleteUser_alreadyDeletedUser_throwsNoSuchElementException() {
@@ -1946,7 +1972,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests DELETE /users/{userId} when the service throws an exception.
+   * (Invalid input) Tests DELETE /users/{userId} when the service throws an
+   * exception.
    */
   @Test
   public void deleteUser_serviceThrowsRuntimeException_propagatesException() {
@@ -1965,7 +1992,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // Tests for deleteUserViaGet
   // ---------------------------------------------------------------------------
   /**
-   * (Typical valid input) Tests GET /deleteuser/{userId} for an existing user.
+   * (Typical valid input) Tests GET /deleteuser/{userId} for an existing
+   * user.
    */
   @Test
   public void deleteUserViaGet_existingUser_returnsSuccessMessage() {
@@ -1978,7 +2006,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests GET /deleteuser/{userId} when the user is already deleted.
+   * (Atypical valid input) Tests GET /deleteuser/{userId} when the user is
+   * already deleted.
    */
   @Test
   public void deleteUserViaGet_alreadyDeletedUser_throwsNoSuchElementException() {
@@ -1994,7 +2023,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests GET /deleteuser/{userId} when the service throws an exception.
+   * (Invalid input) Tests GET /deleteuser/{userId} when the service throws an
+   * exception.
    */
   @Test
   public void deleteUserViaGet_serviceThrowsRuntimeException_propagatesException() {
@@ -2012,9 +2042,9 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // ---------------------------------------------------------------------------
   // Tests for getUserTransactions
   // ---------------------------------------------------------------------------
-
   /**
-   * (Invalid input) Tests GET /users/{userId}/transactions when the service throws an exception.
+   * (Invalid input) Tests GET /users/{userId}/transactions when the service
+   * throws an exception.
    */
   @Test
   public void getUserTransactions_serviceThrows_returns500() {
@@ -2030,9 +2060,10 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
     assertTrue(response.getBody().toString().contains("DB exploded"));
   }
-  
+
   /**
-   * (Typical valid input) Tests GET /users/{userId}/transactions for a user with transactions.
+   * (Typical valid input) Tests GET /users/{userId}/transactions for a user
+   * with transactions.
    */
   @Test
   public void getUserTransactions_existingUser_returnsTransactionsWith200() {
@@ -2052,7 +2083,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests GET /users/{userId}/transactions for a user with no transactions.
+   * (Atypical valid input) Tests GET /users/{userId}/transactions for a user
+   * with no transactions.
    */
   @Test
   public void getUserTransactions_existingUserNoTransactions_returnsEmptyListWith200() {
@@ -2069,7 +2101,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests GET /users/{userId}/transactions for a non-existent user.
+   * (Invalid input) Tests GET /users/{userId}/transactions for a non-existent
+   * user.
    */
   @Test
   public void getUserTransactions_userDoesNotExist_returns404Error() {
@@ -2083,7 +2116,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests GET /users/{userId}/transactions when the service throws an exception.
+   * (Invalid input) Tests GET /users/{userId}/transactions when the service
+   * throws an exception.
    */
   @Test
   public void getUserTransactions_serviceThrowsException_returns500Error() {
@@ -2104,8 +2138,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // Tests for getTransaction
   // ---------------------------------------------------------------------------
   /**
-   * (Typical valid input) 
-   * Tests GET /users/{userId}/transactions/{txId} for a valid, matching transaction.
+   * (Typical valid input) Tests GET /users/{userId}/transactions/{txId} for a
+   * valid, matching transaction.
    */
   @Test
   public void getTransaction_existingUserAndTransaction_returnsTransactionWith200() {
@@ -2127,8 +2161,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input)
-   * Tests GET .../{txId} where the transaction exists but belongs to another user.
+   * (Atypical valid input) Tests GET .../{txId} where the transaction exists
+   * but belongs to another user.
    */
   @Test
   public void getTransaction_transactionBelongsToDifferentUser_throwsNoSuchElementException() {
@@ -2193,9 +2227,9 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // ---------------------------------------------------------------------------
   // Tests for createTransactionJson
   // ---------------------------------------------------------------------------
-  
   /**
-   * (Invalid input) Tests POST .../transactions when the service layer throws an exception.
+   * (Invalid input) Tests POST .../transactions when the service layer throws
+   * an exception.
    */
   @Test
   public void createTransactionJson_serviceThrows_propagatesException() {
@@ -2208,17 +2242,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.addTransaction(any(Transaction.class)))
         .thenThrow(new RuntimeException("DB insert broke"));
 
-    RuntimeException ex = assertThrows(RuntimeException.class, () ->
-        routeController.createTransactionJson(userId, tx)
+    RuntimeException ex = assertThrows(RuntimeException.class, ()
+        -> routeController.createTransactionJson(userId, tx)
     );
 
     assertTrue(ex.getMessage().contains("DB insert broke"));
   }
 
-  
-
   /**
-   * (Invalid input) Tests POST .../transactions/form when the service layer throws an exception.
+   * (Invalid input) Tests POST .../transactions/form when the service layer
+   * throws an exception.
    */
   @Test
   public void createTransactionFromFormHtml_serviceThrows_returns500() {
@@ -2236,10 +2269,11 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
 
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
     assertTrue(response.getBody().contains("exploded"));
-  }  
-  
+  }
+
   /**
-   * (Typical valid input) Tests POST .../transactions with a valid JSON payload.
+   * (Typical valid input) Tests POST .../transactions with a valid JSON
+   * payload.
    */
   @Test
   public void createTransactionJson_validUserAndTransaction_returnsCreatedTransactionWith201() {
@@ -2251,8 +2285,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
     when(mockApiService.addTransaction(transaction)).thenReturn(saved);
 
-    ResponseEntity<Transaction> response =
-        routeController.createTransactionJson(userId, transaction);
+    ResponseEntity<Transaction> response
+        = routeController.createTransactionJson(userId, transaction);
 
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertEquals(saved, response.getBody());
@@ -2272,8 +2306,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
     when(mockApiService.addTransaction(transaction)).thenReturn(saved);
 
-    ResponseEntity<Transaction> response =
-        routeController.createTransactionJson(userId, transaction);
+    ResponseEntity<Transaction> response
+        = routeController.createTransactionJson(userId, transaction);
 
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertEquals(saved, response.getBody());
@@ -2313,8 +2347,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
     when(mockApiService.addTransaction(any(Transaction.class))).thenReturn(saved);
 
-    ResponseEntity<String> response =
-        routeController.createTransactionFromFormHtml(userId, "Clothes", 120.0, "Shopping");
+    ResponseEntity<String> response
+        = routeController.createTransactionFromFormHtml(userId, "Clothes", 120.0, "Shopping");
 
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertTrue(response.getBody().contains("Transaction Created Successfully"));
@@ -2323,8 +2357,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) 
-   * Tests POST .../transactions/form with a negative amount (e.g., a refund).
+   * (Atypical valid input) Tests POST .../transactions/form with a negative
+   * amount (e.g., a refund).
    */
   @Test
   public void createTransactionFromFormHtml_negativeAmount_returnsHtmlSuccessWith201() {
@@ -2335,8 +2369,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.getUser(userId)).thenReturn(Optional.of(user));
     when(mockApiService.addTransaction(any(Transaction.class))).thenReturn(saved);
 
-    ResponseEntity<String> response =
-        routeController.createTransactionFromFormHtml(userId, "Reversal", -50.0, "Refund");
+    ResponseEntity<String> response
+        = routeController.createTransactionFromFormHtml(userId, "Reversal", -50.0, "Refund");
 
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertTrue(response.getBody().contains("Reversal"));
@@ -2351,15 +2385,16 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     UUID userId = UUID.randomUUID();
     when(mockApiService.getUser(userId)).thenReturn(Optional.empty());
 
-    ResponseEntity<String> response =
-        routeController.createTransactionFromFormHtml(userId, "Test", 40.0, "Misc");
+    ResponseEntity<String> response
+        = routeController.createTransactionFromFormHtml(userId, "Test", 40.0, "Misc");
 
     assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     assertTrue(response.getBody().contains("User " + userId + " not found"));
   }
 
   /**
-   * (Invalid input) Tests POST .../transactions/form when the service throws an exception.
+   * (Invalid input) Tests POST .../transactions/form when the service throws
+   * an exception.
    */
   @Test
   public void createTransactionFromFormHtml_serviceThrowsException_returns500Error() {
@@ -2370,8 +2405,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.addTransaction(any(Transaction.class)))
         .thenThrow(new RuntimeException("Database error"));
 
-    ResponseEntity<String> response =
-        routeController.createTransactionFromFormHtml(userId, "Groceries", 45.0, "Food");
+    ResponseEntity<String> response
+        = routeController.createTransactionFromFormHtml(userId, "Groceries", 45.0, "Food");
 
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
     assertTrue(response.getBody().contains("Error creating transaction"));
@@ -2380,9 +2415,9 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // ---------------------------------------------------------------------------
   // Tests for updateTransactionJson
   // ---------------------------------------------------------------------------
-  
   /**
-   * (Invalid input) Tests PUT .../{txId} when the service update call fails (returns empty).
+   * (Invalid input) Tests PUT .../{txId} when the service update call fails
+   * (returns empty).
    */
   @Test
   public void updateTransactionJson_updateFails_throwsException() {
@@ -2397,7 +2432,7 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.getTransaction(txId)).thenReturn(Optional.of(tx));
 
     when(mockApiService.updateTransaction(eq(txId), anyMap()))
-            .thenReturn(Optional.empty());
+        .thenReturn(Optional.empty());
 
     assertThrows(NoSuchElementException.class,
         () -> routeController.updateTransactionJson(userId, txId, Map.of("amount", 9)));
@@ -2426,8 +2461,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.updateTransaction(transactionId, updates))
         .thenReturn(Optional.of(updatedTx));
 
-    ResponseEntity<Transaction> response =
-        routeController.updateTransactionJson(userId, transactionId, updates);
+    ResponseEntity<Transaction> response
+        = routeController.updateTransactionJson(userId, transactionId, updates);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(updatedTx, response.getBody());
@@ -2436,7 +2471,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests PUT .../{txId} when the service reports the update failed.
+   * (Atypical valid input) Tests PUT .../{txId} when the service reports the
+   * update failed.
    */
   @Test
   public void updateTransactionJson_updateFails_throwsNoSuchElementException() {
@@ -2461,7 +2497,7 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     // Just check the type; don't over-constrain the message
     assertNotNull(thrown.getMessage());
   }
-  
+
   /**
    * (Invalid input) Tests PUT .../{txId} for a non-existent user.
    */
@@ -2483,7 +2519,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests PUT .../{txId} for a transaction belonging to another user.
+   * (Invalid input) Tests PUT .../{txId} for a transaction belonging to
+   * another user.
    */
   @Test
   public void updateTransactionJson_transactionToDifferentUser_throwsNoSuchElementException() {
@@ -2538,7 +2575,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // Tests for showCreateTransactionForm
   // ---------------------------------------------------------------------------
   /**
-   * (Typical valid input) Tests GET .../transactions/create-form returns the correct HTML.
+   * (Typical valid input) Tests GET .../transactions/create-form returns the
+   * correct HTML.
    */
   @Test
   public void showCreateTransactionForm_validUser_returnsHtmlForm() {
@@ -2559,7 +2597,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests GET .../transactions/create-form for a minimal user.
+   * (Atypical valid input) Tests GET .../transactions/create-form for a
+   * minimal user.
    */
   @Test
   public void showCreateTransactionForm_atypicalUser_returnsHtmlForm() {
@@ -2577,7 +2616,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests GET .../transactions/create-form for a non-existent user.
+   * (Invalid input) Tests GET .../transactions/create-form for a non-existent
+   * user.
    */
   @Test
   public void showCreateTransactionForm_userDoesNotExist_throwsNoSuchElementException() {
@@ -2596,9 +2636,9 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // ---------------------------------------------------------------------------
   // Tests for deleteTransaction
   // ---------------------------------------------------------------------------
-
   /**
-   * (Invalid input) Tests DELETE .../{txId} where the transaction belongs to another user.
+   * (Invalid input) Tests DELETE .../{txId} where the transaction belongs to
+   * another user.
    */
   @Test
   public void deleteTransaction_transactionBelongsToOtherUser_throws() {
@@ -2614,10 +2654,11 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
 
     assertThrows(NoSuchElementException.class,
         () -> routeController.deleteTransaction(userId, txId));
-  }  
+  }
 
   /**
-   * (Invalid input) Tests DELETE .../{txId} when the service reports the delete failed.
+   * (Invalid input) Tests DELETE .../{txId} when the service reports the
+   * delete failed.
    */
   @Test
   public void deleteTransaction_deleteFails_throwsNoSuchElementException_alt() {
@@ -2639,10 +2680,11 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     );
 
     assertTrue(ex.getMessage().contains("Transaction " + txId + " not found"));
-  }  
-  
+  }
+
   /**
-   * (Typical valid input) Tests DELETE .../{txId} for a valid, matching transaction.
+   * (Typical valid input) Tests DELETE .../{txId} for a valid, matching
+   * transaction.
    */
   @Test
   public void deleteTransaction_validUserAndTransaction_returns200AndConfirmationMap() {
@@ -2657,8 +2699,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.getTransaction(transactionId)).thenReturn(Optional.of(tx));
     when(mockApiService.deleteTransaction(transactionId)).thenReturn(true);
 
-    ResponseEntity<Map<String, Object>> response =
-        routeController.deleteTransaction(userId, transactionId);
+    ResponseEntity<Map<String, Object>> response
+        = routeController.deleteTransaction(userId, transactionId);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertTrue((Boolean) response.getBody().get("deleted"));
@@ -2667,7 +2709,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests DELETE .../{txId} when the service reports the delete failed.
+   * (Atypical valid input) Tests DELETE .../{txId} when the service reports
+   * the delete failed.
    */
   @Test
   public void deleteTransaction_deleteFails_throwsNoSuchElementException() {
@@ -2709,7 +2752,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests DELETE .../{txId} for a transaction belonging to another user.
+   * (Invalid input) Tests DELETE .../{txId} for a transaction belonging to
+   * another user.
    */
   @Test
   public void deleteTransaction_transactionToDifferentUser_throwsNoSuchElementException() {
@@ -2737,7 +2781,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // Tests for deleteTransactionViaGet
   // ---------------------------------------------------------------------------
   /**
-   * (Typical valid input) Tests GET .../deletetransaction/{txId} for a valid, matching transaction.
+   * (Typical valid input) Tests GET .../deletetransaction/{txId} for a valid,
+   * matching transaction.
    */
   @Test
   public void deleteTransactionViaGet_validUserAndTransaction_returnsSuccessMessage() {
@@ -2758,8 +2803,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) 
-   * Tests GET .../deletetransaction/{txId} when the service reports the delete failed.
+   * (Atypical valid input) Tests GET .../deletetransaction/{txId} when the
+   * service reports the delete failed.
    */
   @Test
   public void deleteTransactionViaGet_deleteFails_returnsErrorMessage() {
@@ -2780,7 +2825,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) Tests GET .../deletetransaction/{txId} for a non-existent user.
+   * (Invalid input) Tests GET .../deletetransaction/{txId} for a non-existent
+   * user.
    */
   @Test
   public void deleteTransactionViaGet_userDoesNotExist_returnsUserNotFoundError() {
@@ -2795,8 +2841,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Invalid input) 
-   * Tests GET .../deletetransaction/{txId} for a transaction belonging to another user.
+   * (Invalid input) Tests GET .../deletetransaction/{txId} for a transaction
+   * belonging to another user.
    */
   @Test
   public void deleteTransactionViaGet_transactionToDifferentUser_returnsTransactionNotFoundError() {
@@ -2820,10 +2866,9 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // ---------------------------------------------------------------------------
   // Tests for budgetManagement
   // ---------------------------------------------------------------------------
-
   /**
-  * (Invalid input) Tests GET .../budget for a non-existent user.
-  */
+   * (Invalid input) Tests GET .../budget for a non-existent user.
+   */
   @Test
   public void budgetManagement_userNotFound_throwsNoSuchElementException() {
     UUID userId = UUID.randomUUID();
@@ -2836,10 +2881,10 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
 
     assertTrue(thrown.getMessage().contains("User " + userId + " not found"));
   }
-  /**
-  * (Typical valid input) Tests GET .../budget for a user with spending.
-  */
 
+  /**
+   * (Typical valid input) Tests GET .../budget for a user with spending.
+   */
   @Test
   public void budgetManagement_userFoundWithWeeklySpending_returnsHtml() {
     UUID userId = UUID.randomUUID();
@@ -2849,7 +2894,6 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     when(mockApiService.getBudgetReport(userId)).thenReturn(
         Map.of("totalSpent", 200.0, "remaining", 800.0)
     );
-
     when(mockApiService.totalLast7Days(userId)).thenReturn(150.00);
 
     String html = routeController.budgetManagement(userId);
@@ -2859,10 +2903,11 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     assertTrue(html.contains("$200.0"));
     assertTrue(html.contains("$800.0"));
   }
-  
+
   /**
-  * (Atypical valid input) Tests GET .../budget for a user with zero budget and spending.
-  */
+   * (Atypical valid input) Tests GET .../budget for a user with zero budget
+   * and spending.
+   */
   @Test
   public void budgetManagement_zeroSpendingAllFields_returnsHtml() {
     UUID userId = UUID.randomUUID();
@@ -2879,7 +2924,7 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     assertTrue(html.contains("$0.00"));
     assertTrue(html.contains("$0.0"));
   }
-    
+
   /**
    * (Typical valid input) Tests GET .../budget for a user with a budget.
    */
@@ -2908,7 +2953,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests GET .../budget for a user with a zero budget.
+   * (Atypical valid input) Tests GET .../budget for a user with a zero
+   * budget.
    */
   @Test
   public void budgetManagement_userWithZeroBudget_returnsHtmlWithZeros() {
@@ -2953,8 +2999,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     doNothing().when(mockApiService).setBudgets(userId, budgetUpdate);
     when(mockApiService.getBudgetReport(userId)).thenReturn(updatedReport);
 
-    ResponseEntity<Map<String, Object>> response =
-        routeController.updateBudgetJson(userId, budgetUpdate);
+    ResponseEntity<Map<String, Object>> response
+        = routeController.updateBudgetJson(userId, budgetUpdate);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(updatedReport, response.getBody());
@@ -2976,8 +3022,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     doNothing().when(mockApiService).setBudgets(userId, budgetUpdate);
     when(mockApiService.getBudgetReport(userId)).thenReturn(report);
 
-    ResponseEntity<Map<String, Object>> response =
-        routeController.updateBudgetJson(userId, budgetUpdate);
+    ResponseEntity<Map<String, Object>> response
+        = routeController.updateBudgetJson(userId, budgetUpdate);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(report, response.getBody());
@@ -3025,7 +3071,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests POST .../update-budget setting the budget to zero.
+   * (Atypical valid input) Tests POST .../update-budget setting the budget to
+   * zero.
    */
   @Test
   public void updateBudget_zeroBudget_returnsHtmlWithZero() {
@@ -3063,10 +3110,10 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // ---------------------------------------------------------------------------
   // Tests for weeklySummary
   // ---------------------------------------------------------------------------
-
   /**
-  * (Typical valid input) Tests GET .../weekly-summary for a user with transactions.
-  */
+   * (Typical valid input) Tests GET .../weekly-summary for a user with
+   * transactions.
+   */
   @Test
   public void weeklySummary_withTransactions_rendersTable() {
     UUID userId = UUID.randomUUID();
@@ -3087,9 +3134,10 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
     assertEquals(1, transactions.size());
     assertTrue(transactions.contains(t));
   }
-  
+
   /**
-   * (Typical valid input) Tests GET .../weekly-summary with multiple transactions.
+   * (Typical valid input) Tests GET .../weekly-summary with multiple
+   * transactions.
    */
   @Test
   public void weeklySummary_validUser_returnsHtmlWithTransactionsAndTotal() {
@@ -3116,7 +3164,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests GET .../weekly-summary for a user with no transactions.
+   * (Atypical valid input) Tests GET .../weekly-summary for a user with no
+   * transactions.
    */
   @Test
   public void weeklySummary_noTransactions_returnsNoTransactionsMessage() {
@@ -3155,9 +3204,9 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   // ---------------------------------------------------------------------------
   // Tests for monthlySummary
   // ---------------------------------------------------------------------------
-
   /**
-   * (Atypical valid input) Tests GET .../monthly-summary when the service returns null.
+   * (Atypical valid input) Tests GET .../monthly-summary when the service
+   * returns null.
    */
   @Test
   public void monthlySummary_nullSummary_returnsEmptyPreBlock() {
@@ -3171,7 +3220,7 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
 
     assertNull(response.get("summary"));
   }
-  
+
   /**
    * (Typical valid input) Tests GET .../monthly-summary for a valid user.
    */
@@ -3191,7 +3240,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests GET .../monthly-summary when the service returns an empty string.
+   * (Atypical valid input) Tests GET .../monthly-summary when the service
+   * returns an empty string.
    */
   @Test
   public void monthlySummary_emptySummary_returnsHtmlWithEmptyPreBlock() {
@@ -3250,7 +3300,8 @@ public void createTransactionFromFormHtml_loggerOff_userDoesNotExist_returns404E
   }
 
   /**
-   * (Atypical valid input) Tests GET .../budget-report for a user with an empty report.
+   * (Atypical valid input) Tests GET .../budget-report for a user with an
+   * empty report.
    */
   @Test
   public void budgetReport_emptyReport_returnsHttp200WithEmptyJson() {
