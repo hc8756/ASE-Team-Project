@@ -38,19 +38,20 @@ Alternatively, access GCP-hosted version at https://ase-team-project-14112543428
 
 
 ## Viewing Log
-- Open the GCP project hosting our project [here](https://console.cloud.google.com/welcome?authuser=0&hl=en&project=ageless-answer-474618-u4)
+- Open the GCP project hosting our service [here](https://console.cloud.google.com/welcome?authuser=0&hl=en&project=ageless-answer-474618-u4)
 - Navigate to **Monitoring → Logs Explorer**
 - Use the time selection tool on the top right to set timeframe of logs you want to view
 - In the query textbox, enter the following query: `textPayload:"CLIENT_LOG:"`
 Following these instructions will show you a list of all API endpoint calls made as well as their time and the IP address of the client.
 
 ## Client Program
-  
 View our client repository here: https://github.com/hc8756/ASE-Team-Project-Client  
   
 This is an example of a client for general users. It allows the user to log in or create an account before viewing their homepage. The homepage contains a list of the user's transactions which can be added to and edited by the viewer. It also shows a user analyitics of their weekly and monthly budgets.
 
-A hypothetical second client is one for banking institutions. This client would be different in that they would have a view of multiple accounts rather than only one. They would also have limited write permissions to an account's transactions. They would use our service primarily to view and manage their own users. 
+Multiple people can build and run the client locally following the instructions on the client repo README. All client instances would automatically make calls to the GCP instance hosting our service. How this was implemented can be seen in [this client script](https://github.com/hc8756/ASE-Team-Project-Client/blob/main/src/main/java/dev/ase/client/service/MockApiService.java). The handling of multiple users at once is done by GCP's Cloud Run and Cloud SQL services. As mentioned in the **Viewing Log** section, GCP's Log Explorer keeps track of the IP addresses of each endpoint call, which is how we differentiate clients.
+
+A hypothetical second client is one for banking institutions. This client would be different in that they would have a view of multiple accounts rather than only one. They could implement this by creating a database of their users. They could then view and manage their users, user transactions, and user analytics through our GET endpoints. However, they would have limited edit access to user information and trasactions.
 
 ## API Documentation
 
