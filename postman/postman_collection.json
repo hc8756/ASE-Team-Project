@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "ase-team-project-api-tests",
     "name": "ASE Team Project - Personal Finance Tracker API Tests",
-    "description": "Comprehensive API tests covering all endpoints with equivalence partitions.\n\n## Equivalence Partitions Documentation\n\nSee individual requests for partition coverage details.",
+    "description": "Comprehensive API tests for the Personal Finance Tracker service.\n\n## Test Coverage\n\nThis collection provides complete API testing with:\n- Valid and invalid equivalence partitions for each endpoint\n- Boundary value testing (zero, negative, large values)\n- Multiple client simulation (testUserId and testUserId2)\n- Persistent data verification (create-retrieve-update-delete sequences)\n\n## Equivalence Partition Documentation\n\nSee API_EQUIVALENCE_PARTITIONS.md for detailed partition definitions and test mappings.\n\n## Running Tests\n\n### Via Postman\nImport both the collection and environment files, then run the collection.\n\n### Via Newman (CLI)\n\n### In CI Pipeline\nTests run automatically during CI using Newman.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -60,8 +60,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         }
@@ -101,8 +105,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/",
-              "host": ["{{baseUrl}}"],
-              "path": [""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
             }
           }
         },
@@ -131,8 +139,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/index",
-              "host": ["{{baseUrl}}"],
-              "path": ["index"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "index"
+              ]
             }
           }
         },
@@ -157,8 +169,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/invalid-path",
-              "host": ["{{baseUrl}}"],
-              "path": ["invalid-path"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invalid-path"
+              ]
             }
           }
         }
@@ -203,8 +219,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         }
@@ -233,7 +253,7 @@
                   "    pm.expect(jsonData).to.have.property('userId');",
                   "    pm.expect(jsonData.userId).to.not.be.null;",
                   "    // Store for later tests",
-                  "    pm.collectionVariables.set('testUserId', jsonData.userId);",
+                  "    pm.environment.set('testUserId', jsonData.userId);",
                   "});",
                   "",
                   "pm.test('P1: Response contains correct username', function () {",
@@ -277,8 +297,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -295,7 +319,7 @@
                   "});",
                   "",
                   "const jsonData = pm.response.json();",
-                  "pm.collectionVariables.set('testUserId2', jsonData.userId);"
+                  "pm.environment.set('testUserId2', jsonData.userId);"
                 ],
                 "type": "text/javascript"
               }
@@ -326,8 +350,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -380,8 +408,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -434,8 +466,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -487,8 +523,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -540,8 +580,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -577,8 +621,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -629,106 +677,30 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "4. User Management - GET /users/{userId}",
-      "item": [
-        {
-          "name": "GET /users/{userId} - Existing User (P1: Valid)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Equivalence Partition: P1 - Valid: existing user ID",
-                  "// Expected: 200 OK with user data",
-                  "",
-                  "pm.test('P1: Status code is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('P1: Response contains user data', function () {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('userId');",
-                  "    pm.expect(jsonData).to.have.property('username');",
-                  "    pm.expect(jsonData).to.have.property('email');",
-                  "    pm.expect(jsonData).to.have.property('budget');",
-                  "});",
-                  "",
-                  "pm.test('P1: Response is JSON', function () {",
-                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/users/{{testUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
         {
-          "name": "GET /users/{userId} - Non-existent UUID (P2: Invalid - not found)",
+          "name": "POST /users - Duplicate Email (P8: Invalid)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Equivalence Partition: P2 - Invalid: non-existent but valid UUID format",
-                  "// Expected: 404 Not Found",
-                  "",
-                  "pm.test('P2: Status code is 404 for non-existent user', function () {",
-                  "    pm.response.to.have.status(404);",
-                  "});",
-                  "",
-                  "pm.test('P2: Error message indicates user not found', function () {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.error).to.include('not found');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000"]
-            }
-          }
-        },
-        {
-          "name": "GET /users/{userId} - Invalid UUID Format (P3: Invalid format)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Equivalence Partition: P3 - Invalid: malformed UUID",
-                  "// Expected: 400 Bad Request",
-                  "",
-                  "pm.test('P3: Status code is 400 for invalid UUID format', function () {",
+                  "// Equivalence Partition: P8 - Invalid: duplicate email",
+                  "pm.test('P8: Status code is 400 for duplicate email', function () {",
                   "    pm.response.to.have.status(400);",
                   "});",
                   "",
-                  "pm.test('P3: Error message indicates invalid UUID', function () {",
+                  "pm.test('P8: Error message mentions email exists', function () {",
                   "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.error).to.include('Invalid UUID');",
+                  "    pm.expect(jsonData.error).to.include('already exists');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -736,56 +708,7 @@
             }
           ],
           "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/users/not-a-valid-uuid",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "not-a-valid-uuid"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "5. User Management - PUT /users/{userId}",
-      "item": [
-        {
-          "name": "PUT /users/{userId} - Update All Fields (P1: Valid)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Equivalence Partition: P1 - Valid: update existing user",
-                  "// Expected: 200 OK with updated user",
-                  "",
-                  "pm.test('P1: Status code is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('P1: User data is updated', function () {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.budget).to.eql(1500);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const timestamp = Date.now();",
-                  "pm.variables.set('updatedUsername', 'Updated_' + timestamp);",
-                  "pm.variables.set('updatedEmail', 'updated_' + timestamp + '@test.com');"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -794,49 +717,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"username\": \"{{updatedUsername}}\",\n    \"email\": \"{{updatedEmail}}\",\n    \"budget\": 1500\n}"
+              "raw": "{\n    \"username\": \"UniqueUser_DupEmail\",\n    \"email\": \"{{uniqueEmail}}\",\n    \"budget\": 500\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "raw": "{{baseUrl}}/users",
               "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}"]
-            }
-          }
-        },
-        {
-          "name": "PUT /users/{userId} - Non-existent User (P2: Invalid)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Equivalence Partition: P2 - Invalid: non-existent user",
-                  "// Expected: 404 Not Found",
-                  "",
-                  "pm.test('P2: Status code is 404 for non-existent user', function () {",
-                  "    pm.response.to.have.status(404);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"username\": \"Ghost\",\n    \"email\": \"ghost@test.com\",\n    \"budget\": 100\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000"]
+              "path": ["users"]
             }
           }
         }
@@ -912,6 +798,110 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "form"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/form - Duplicate Username (P2: Invalid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Invalid: duplicate username",
+                  "pm.test('P2: Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{uniqueUsername}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "unique_form@test.com",
+                  "type": "text"
+                },
+                {
+                  "key": "budget",
+                  "value": "500",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "form"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/form - Duplicate Email (P3: Invalid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P3 - Invalid: duplicate email",
+                  "pm.test('P3: Status code is 400 for duplicate email', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('P3: Error message mentions email', function () {",
+                  "    pm.expect(pm.response.text()).to.include('User Creation Failed');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "username", "value": "unique_form_username", "type": "text"},
+                {"key": "email", "value": "{{uniqueEmail}}", "type": "text"},
+                {"key": "budget", "value": "500", "type": "text"}
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/form",
               "host": ["{{baseUrl}}"],
               "path": ["users", "form"]
             }
@@ -920,7 +910,591 @@
       ]
     },
     {
-      "name": "7. User Management - GET Forms",
+      "name": "4. User Management - GET /users/{userId}",
+      "item": [
+        {
+          "name": "GET /users/{userId} - Existing User (P1: Valid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P1 - Valid: existing user ID",
+                  "// Expected: 200 OK with user data",
+                  "",
+                  "pm.test('P1: Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('P1: Response contains user data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('userId');",
+                  "    pm.expect(jsonData).to.have.property('username');",
+                  "    pm.expect(jsonData).to.have.property('email');",
+                  "    pm.expect(jsonData).to.have.property('budget');",
+                  "});",
+                  "",
+                  "pm.test('P1: Response is JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId} - Non-existent UUID (P2: Invalid - not found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Invalid: non-existent but valid UUID format",
+                  "// Expected: 404 Not Found",
+                  "",
+                  "pm.test('P2: Status code is 404 for non-existent user', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('P2: Error message indicates user not found', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.include('not found');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId} - Invalid UUID Format (P3: Invalid format)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P3 - Invalid: malformed UUID",
+                  "// Expected: 400 Bad Request",
+                  "",
+                  "pm.test('P3: Status code is 400 for invalid UUID format', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('P3: Error message indicates invalid UUID', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.include('Invalid UUID');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/not-a-valid-uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "not-a-valid-uuid"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. User Management - PUT /users/{userId}",
+      "item": [
+        {
+          "name": "PUT /users/{userId} - Update All Fields (P1: Valid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P1 - Valid: update existing user",
+                  "// Expected: 200 OK with updated user",
+                  "",
+                  "pm.test('P1: Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('P1: User data is updated', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.budget).to.eql(1500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const timestamp = Date.now();",
+                  "pm.variables.set('updatedUsername', 'Updated_' + timestamp);",
+                  "pm.variables.set('updatedEmail', 'updated_' + timestamp + '@test.com');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"{{updatedUsername}}\",\n    \"email\": \"{{updatedEmail}}\",\n    \"budget\": 1500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /users/{userId} - Non-existent User (P2: Invalid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Invalid: non-existent user",
+                  "// Expected: 404 Not Found",
+                  "",
+                  "pm.test('P2: Status code is 404 for non-existent user', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"Ghost\",\n    \"email\": \"ghost@test.com\",\n    \"budget\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /users/{userId} - Duplicate Username (P3: Invalid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P3 - Invalid: duplicate username",
+                  "pm.test('P3: Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{uniqueUsername2}}\", \"email\": \"unique_put@test.com\", \"budget\": 100}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /users/{userId} - Duplicate Email (P4: Invalid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P4 - Invalid: duplicate email",
+                  "pm.test('P4: Status code is 400 for duplicate email', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"unique_put_user\",\n    \"email\": \"{{uniqueEmail2}}\",\n    \"budget\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}"]
+            }
+          }
+        },
+        {
+          "name": "PUT /users/{userId} - Zero Budget (P5: Boundary)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const ts = Date.now();",
+                  "pm.environment.set('zeroPutUser', 'ZeroPut_' + ts);",
+                  "pm.environment.set('zeroPutEmail', 'zeroput_' + ts + '@test.com');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P5 - Boundary: zero budget",
+                  "pm.test('P5: Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('P5: Budget is 0', function () {",
+                  "    pm.expect(pm.response.json().budget).to.eql(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{zeroPutUser}}\", \"email\": \"{{zeroPutEmail}}\", \"budget\": 0}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. User Management - POST /users/{userId}/update-form (HTML)",
+      "item": [
+        {
+          "name": "POST /users/{userId}/update-form - Valid (P1)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const timestamp = Date.now();",
+                  "pm.variables.set('updateFormUsername', 'UpdatedForm_' + timestamp);",
+                  "pm.variables.set('updateFormEmail', 'updatedform_' + timestamp + '@test.com');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P1 - Valid update via form",
+                  "pm.test('P1: Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('P1: Response is HTML', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/html');",
+                  "});",
+                  "",
+                  "pm.test('P1: Success message present', function () {",
+                  "    pm.expect(pm.response.text()).to.include('User Updated Successfully');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{updateFormUsername}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "{{updateFormEmail}}",
+                  "type": "text"
+                },
+                {
+                  "key": "budget",
+                  "value": "1250",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}/update-form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "update-form"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/{userId}/update-form - User Not Found (P2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Invalid: non-existent user",
+                  "pm.test('P2: Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "GhostUser",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "ghost@test.com",
+                  "type": "text"
+                },
+                {
+                  "key": "budget",
+                  "value": "500",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/update-form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "update-form"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/{userId}/update-form - Duplicate Username (P3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P3 - Invalid: duplicate username",
+                  "pm.test('P3: Status code is 400 for duplicate username', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('P3: Error message mentions username', function () {",
+                  "    pm.expect(pm.response.text()).to.include('Username already in use');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "username", "value": "{{uniqueUsername2}}", "type": "text"},
+                {"key": "email", "value": "unique_update_email@test.com", "type": "text"},
+                {"key": "budget", "value": "500", "type": "text"}
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}/update-form",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}", "update-form"]
+            }
+          }
+        },
+        {
+          "name": "POST /users/{userId}/update-form - Duplicate Email (P4)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P4 - Invalid: duplicate email",
+                  "pm.test('P4: Status code is 400 for duplicate email', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('P4: Error message mentions email', function () {",
+                  "    pm.expect(pm.response.text()).to.include('email already in use');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "username", "value": "unique_update_username", "type": "text"},
+                {"key": "email", "value": "{{uniqueEmail2}}", "type": "text"},
+                {"key": "budget", "value": "500", "type": "text"}
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}/update-form",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}", "update-form"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. User Management - GET Forms",
       "item": [
         {
           "name": "GET /users/create-form (P1: Valid)",
@@ -948,8 +1522,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/create-form",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "create-form"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "create-form"
+              ]
             }
           }
         },
@@ -979,8 +1558,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/edit-form",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "edit-form"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "edit-form"
+              ]
             }
           }
         },
@@ -1005,15 +1590,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/edit-form",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000", "edit-form"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "edit-form"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "8. Transaction Management - POST /users/{userId}/transactions",
+      "name": "9. Transaction Management - POST /users/{userId}/transactions",
       "item": [
         {
           "name": "POST Transaction - Valid (P1: All fields valid)",
@@ -1033,7 +1624,7 @@
                   "pm.test('P1: Transaction has ID', function () {",
                   "    const jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.have.property('transactionId');",
-                  "    pm.collectionVariables.set('testTransactionId', jsonData.transactionId);",
+                  "    pm.environment.set('testTransactionId', jsonData.transactionId);",
                   "});",
                   "",
                   "pm.test('P1: Transaction has timestamp', function () {",
@@ -1065,8 +1656,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
             }
           }
         },
@@ -1082,7 +1679,7 @@
                   "});",
                   "",
                   "const jsonData = pm.response.json();",
-                  "pm.collectionVariables.set('testTransactionId2', jsonData.transactionId);"
+                  "pm.environment.set('testTransactionId2', jsonData.transactionId);"
                 ],
                 "type": "text/javascript"
               }
@@ -1102,8 +1699,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
             }
           }
         },
@@ -1137,8 +1740,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
             }
           }
         },
@@ -1177,8 +1786,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "transactions"
+              ]
             }
           }
         },
@@ -1212,8 +1827,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
             }
           }
         },
@@ -1247,8 +1868,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
             }
           }
         },
@@ -1283,8 +1910,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
             }
           }
         },
@@ -1318,15 +1951,65 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Transaction - Large Amount (P7: Boundary)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P7 - Boundary: large amount",
+                  "pm.test('P7: Status is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('P7: Large amount stored', function () {",
+                  "    pm.expect(pm.response.json().amount).to.be.above(999999);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"description\": \"Large purchase\", \"amount\": 9999999.99, \"category\": \"OTHER\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "9. Transaction Management - GET /users/{userId}/transactions",
+      "name": "10. Transaction Management - GET /users/{userId}/transactions",
       "item": [
         {
           "name": "GET Transactions - Valid User (P1: Valid)",
@@ -1363,8 +2046,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
             }
           }
         },
@@ -1389,15 +2078,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "transactions"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "10. Transaction Management - GET /users/{userId}/transactions/{txId}",
+      "name": "11. Transaction Management - GET /users/{userId}/transactions/{txId}",
       "item": [
         {
           "name": "GET Single Transaction - Valid (P1: Valid)",
@@ -1426,8 +2121,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/{{testTransactionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions", "{{testTransactionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "{{testTransactionId}}"
+              ]
             }
           }
         },
@@ -1457,8 +2159,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId2}}/transactions/{{testTransactionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId2}}", "transactions", "{{testTransactionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId2}}",
+                "transactions",
+                "{{testTransactionId}}"
+              ]
             }
           }
         },
@@ -1483,15 +2192,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/00000000-0000-0000-0000-000000000000",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions", "00000000-0000-0000-0000-000000000000"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "00000000-0000-0000-0000-000000000000"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "11. Transaction Management - PUT /users/{userId}/transactions/{txId}",
+      "name": "12. Transaction Management - PUT /users/{userId}/transactions/{txId}",
       "item": [
         {
           "name": "PUT Transaction - Update Amount (P1: Valid)",
@@ -1528,8 +2244,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/{{testTransactionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions", "{{testTransactionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "{{testTransactionId}}"
+              ]
             }
           }
         },
@@ -1562,8 +2285,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/transactions/{{testTransactionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000", "transactions", "{{testTransactionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "transactions",
+                "{{testTransactionId}}"
+              ]
             }
           }
         },
@@ -1596,15 +2326,106 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId2}}/transactions/{{testTransactionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId2}}", "transactions", "{{testTransactionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId2}}",
+                "transactions",
+                "{{testTransactionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT Transaction - Invalid Category (P5: Invalid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P5 - Invalid category",
+                  "pm.test('P5: Status indicates error', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"category\": \"INVALID\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/{{testTransactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "{{testTransactionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT Transaction - Non-existent Transaction (P4: Invalid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P4 - Non-existent transaction",
+                  "pm.test('P4: Status is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\": 100}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "00000000-0000-0000-0000-000000000000"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "12. Transaction Form Endpoints",
+      "name": "13. Transaction Form Endpoints",
       "item": [
         {
           "name": "GET /users/{userId}/transactions/create-form (P1: Valid)",
@@ -1631,8 +2452,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/create-form",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions", "create-form"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "create-form"
+              ]
             }
           }
         },
@@ -1685,15 +2513,171 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/form",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions", "form"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "form"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId}/transactions/create-form - User Not Found (P2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Invalid: non-existent user",
+                  "pm.test('P2: Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/transactions/create-form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "transactions",
+                "create-form"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/{userId}/transactions/form - User Not Found (P2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Invalid: non-existent user",
+                  "pm.test('P2: Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "description",
+                  "value": "Test",
+                  "type": "text"
+                },
+                {
+                  "key": "amount",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "FOOD",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/transactions/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "transactions",
+                "form"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/{userId}/transactions/form - Invalid Category (P3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P3 - Invalid: invalid category",
+                  "pm.test('P3: Status code indicates error', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "description",
+                  "value": "Test",
+                  "type": "text"
+                },
+                {
+                  "key": "amount",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "INVALID_CAT",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "form"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "13. Budget Management - GET /users/{userId}/budget",
+      "name": "14. Budget Management - GET /users/{userId}/budget",
       "item": [
         {
           "name": "GET Budget Page (P1: Valid)",
@@ -1721,8 +2705,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/budget",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "budget"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "budget"
+              ]
             }
           }
         },
@@ -1746,15 +2736,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/budget",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000", "budget"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "budget"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "14. Budget Management - PUT /users/{userId}/budget",
+      "name": "15. Budget Management - PUT /users/{userId}/budget",
       "item": [
         {
           "name": "PUT Budget - Update (P1: Valid)",
@@ -1791,8 +2787,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/budget",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "budget"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "budget"
+              ]
             }
           }
         },
@@ -1830,8 +2832,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/budget",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "budget"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "budget"
+              ]
             }
           }
         },
@@ -1864,8 +2872,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/budget",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "budget"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "budget"
+              ]
             }
           }
         },
@@ -1898,15 +2912,21 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/budget",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000", "budget"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "budget"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "15. Budget Management - POST /users/{userId}/update-budget",
+      "name": "16. Budget Management - POST /users/{userId}/update-budget",
       "item": [
         {
           "name": "POST Update Budget Form (P1: Valid)",
@@ -1947,15 +2967,68 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/update-budget",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "update-budget"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "update-budget"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Update Budget Form - User Not Found (P2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Non-existent user",
+                  "pm.test('P2: Status is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "budget",
+                  "value": "1000",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/update-budget",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "update-budget"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "16. Analytics - Weekly Summary",
+      "name": "17. Analytics - Weekly Summary",
       "item": [
         {
           "name": "GET Weekly Summary (P1: Valid)",
@@ -1984,8 +3057,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/weekly-summary",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "weekly-summary"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "weekly-summary"
+              ]
             }
           }
         },
@@ -2009,15 +3088,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/weekly-summary",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000", "weekly-summary"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "weekly-summary"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "17. Analytics - Monthly Summary",
+      "name": "18. Analytics - Monthly Summary",
       "item": [
         {
           "name": "GET Monthly Summary (P1: Valid)",
@@ -2044,8 +3129,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/monthly-summary",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "monthly-summary"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "monthly-summary"
+              ]
             }
           }
         },
@@ -2069,15 +3160,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/monthly-summary",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000", "monthly-summary"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "monthly-summary"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "18. Analytics - Budget Report",
+      "name": "19. Analytics - Budget Report",
       "item": [
         {
           "name": "GET Budget Report JSON (P1: Valid)",
@@ -2110,8 +3207,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/budget-report",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "budget-report"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "budget-report"
+              ]
             }
           }
         },
@@ -2135,15 +3238,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/budget-report",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000", "budget-report"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000",
+                "budget-report"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "19. Multiple Clients - Concurrent Operations",
+      "name": "20. Multiple Clients - Concurrent Operations",
       "item": [
         {
           "name": "Concurrent Test - Create Multiple Users Rapid",
@@ -2187,15 +3296,19 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "20. Persistent Data - Verify Data Persists",
+      "name": "21. Persistent Data - Verify Data Persists",
       "item": [
         {
           "name": "Verify Test User Still Exists",
@@ -2224,8 +3337,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}"
+              ]
             }
           }
         },
@@ -2256,15 +3374,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "21. DELETE Operations - Transactions",
+      "name": "22. DELETE Operations - Transactions",
       "item": [
         {
           "name": "DELETE Transaction - Valid (P1: Valid)",
@@ -2291,8 +3415,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/{{testTransactionId2}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions", "{{testTransactionId2}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "{{testTransactionId2}}"
+              ]
             }
           }
         },
@@ -2316,8 +3447,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/transactions/{{testTransactionId2}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "transactions", "{{testTransactionId2}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "transactions",
+                "{{testTransactionId2}}"
+              ]
             }
           }
         },
@@ -2341,8 +3479,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId2}}/transactions/{{testTransactionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId2}}", "transactions", "{{testTransactionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId2}}",
+                "transactions",
+                "{{testTransactionId}}"
+              ]
             }
           }
         },
@@ -2371,14 +3516,45 @@
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/deletetransaction/{{testTransactionId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "deletetransaction", "{{testTransactionId}}"]
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "deletetransaction",
+                "{{testTransactionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId}/deletetransaction/{txId} - Invalid (P2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Invalid: non-existent or wrong user",
+                  "pm.test('P2: Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000/deletetransaction/{{testTransactionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "00000000-0000-0000-0000-000000000000", "deletetransaction", "{{testTransactionId}}"]
             }
           }
         }
       ]
     },
     {
-      "name": "22. DELETE Operations - Users (Cleanup)",
+      "name": "23. DELETE Operations - Users (Cleanup)",
       "item": [
         {
           "name": "DELETE /users/{userId} - Delete Test User 2 (P1: Valid)",
@@ -2405,8 +3581,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId2}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId2}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId2}}"
+              ]
             }
           }
         },
@@ -2430,8 +3611,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId2}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId2}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId2}}"
+              ]
             }
           }
         },
@@ -2459,8 +3645,39 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deleteuser",
+                "{{testUserId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /deleteuser/{userId} - Not Found (P2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Invalid: non-existent userId",
+                  "pm.test('P2: Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/deleteuser/00000000-0000-0000-0000-000000000000",
               "host": ["{{baseUrl}}"],
-              "path": ["deleteuser", "{{testUserId}}"]
+              "path": ["deleteuser", "00000000-0000-0000-0000-000000000000"]
             }
           }
         },
@@ -2484,8 +3701,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "00000000-0000-0000-0000-000000000000"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000"
+              ]
             }
           }
         },
@@ -2509,8 +3731,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/invalid-uuid",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "invalid-uuid"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "invalid-uuid"
+              ]
             }
           }
         }

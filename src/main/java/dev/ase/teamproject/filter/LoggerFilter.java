@@ -12,28 +12,38 @@ import org.springframework.stereotype.Component;
 
 /**
  * Logs all incoming API requests with client IP, method, endpoint, and timestamp.
+ * The client IP is determined from the X-Forwarded-For header if available, otherwise
+ * from the remote address.
  */
 @Component
-@SuppressWarnings({
-    "PMD.SystemPrintln", // Using System.out for simplicity in this example
-})
 public class LoggerFilter implements Filter {
-  
-  /** {@inheritDoc} */
+
+  /**
+   * Logs the details of an incoming HTTP request and passes it along the filter chain.
+   * Extracts client IP from X-Forwarded-For header or falls back to remote address,
+   * then logs the IP, HTTP method, request URI, and current timestamp to standard output.
+   *
+   * @param request The incoming servlet request.
+   * @param response The servlet response.
+   * @param chain The filter chain to continue processing the request.
+   * @throws IOException if an I/O error occurs during filtering.
+   * @throws ServletException if a servlet error occurs during filtering.
+   */
   @Override
-  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) 
+  public void doFilter(final ServletRequest request, final ServletResponse response,
+                       final FilterChain chain)
       throws IOException, ServletException {
-    HttpServletRequest httpRequest = (HttpServletRequest) request;
-    
+    final HttpServletRequest httpRequest = (HttpServletRequest) request;
+
     String clientIp = httpRequest.getHeader("X-Forwarded-For");
     if (clientIp == null || clientIp.isEmpty()) {
       clientIp = request.getRemoteAddr();
     }
-    
+
     // Simple log format: IP | METHOD | ENDPOINT | TIMESTAMP
-    System.out.println("CLIENT_LOG: " + clientIp + " | " 
-        + httpRequest.getMethod() + " " 
-        + httpRequest.getRequestURI() + " | " 
+    System.out.println("CLIENT_LOG: " + clientIp + " | "
+        + httpRequest.getMethod() + " "
+        + httpRequest.getRequestURI() + " | "
         + Instant.now());
 
     chain.doFilter(request, response);

@@ -8,15 +8,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 public final class Application {
-  /** Prevent instantiation of utility class. */
   private Application() {
-    // no-op
   }
 
   /**
-   * Application entry point.
+   * Launches the Spring Boot application.
    *
-   * @param args command line arguments
+   * @param args Command line arguments passed to the application.
    */
   public static void main(final String[] args) {
     SpringApplication.run(Application.class, args);
