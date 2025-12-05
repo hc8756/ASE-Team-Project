@@ -729,6 +729,187 @@
       ]
     },
     {
+      "name": "6. User Management - POST /users/form (HTML)",
+      "item": [
+        {
+          "name": "POST /users/form - Valid Form Data (P1: Valid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P1 - Valid form submission",
+                  "// Expected: 201 Created with HTML response",
+                  "",
+                  "pm.test('P1: Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('P1: Response is HTML', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/html');",
+                  "});",
+                  "",
+                  "pm.test('P1: Success message present', function () {",
+                  "    pm.expect(pm.response.text()).to.include('User Created Successfully');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const timestamp = Date.now();",
+                  "pm.variables.set('formUsername', 'FormUser_' + timestamp);",
+                  "pm.variables.set('formEmail', 'formuser_' + timestamp + '@test.com');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{formUsername}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "{{formEmail}}",
+                  "type": "text"
+                },
+                {
+                  "key": "budget",
+                  "value": "750",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "form"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/form - Duplicate Username (P2: Invalid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P2 - Invalid: duplicate username",
+                  "pm.test('P2: Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{uniqueUsername}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "unique_form@test.com",
+                  "type": "text"
+                },
+                {
+                  "key": "budget",
+                  "value": "500",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "form"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/form - Duplicate Email (P3: Invalid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Equivalence Partition: P3 - Invalid: duplicate email",
+                  "pm.test('P3: Status code is 400 for duplicate email', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('P3: Error message mentions email', function () {",
+                  "    pm.expect(pm.response.text()).to.include('User Creation Failed');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "username", "value": "unique_form_username", "type": "text"},
+                {"key": "email", "value": "{{uniqueEmail}}", "type": "text"},
+                {"key": "budget", "value": "500", "type": "text"}
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/form",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "form"]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "4. User Management - GET /users/{userId}",
       "item": [
         {
@@ -1083,187 +1264,6 @@
                 "users",
                 "{{testUserId}}"
               ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "6. User Management - POST /users/form (HTML)",
-      "item": [
-        {
-          "name": "POST /users/form - Valid Form Data (P1: Valid)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Equivalence Partition: P1 - Valid form submission",
-                  "// Expected: 201 Created with HTML response",
-                  "",
-                  "pm.test('P1: Status code is 201', function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "pm.test('P1: Response is HTML', function () {",
-                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/html');",
-                  "});",
-                  "",
-                  "pm.test('P1: Success message present', function () {",
-                  "    pm.expect(pm.response.text()).to.include('User Created Successfully');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const timestamp = Date.now();",
-                  "pm.variables.set('formUsername', 'FormUser_' + timestamp);",
-                  "pm.variables.set('formEmail', 'formuser_' + timestamp + '@test.com');"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/x-www-form-urlencoded"
-              }
-            ],
-            "body": {
-              "mode": "urlencoded",
-              "urlencoded": [
-                {
-                  "key": "username",
-                  "value": "{{formUsername}}",
-                  "type": "text"
-                },
-                {
-                  "key": "email",
-                  "value": "{{formEmail}}",
-                  "type": "text"
-                },
-                {
-                  "key": "budget",
-                  "value": "750",
-                  "type": "text"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/form",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "form"
-              ]
-            }
-          }
-        },
-        {
-          "name": "POST /users/form - Duplicate Username (P2: Invalid)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Equivalence Partition: P2 - Invalid: duplicate username",
-                  "pm.test('P2: Status code is 400', function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/x-www-form-urlencoded"
-              }
-            ],
-            "body": {
-              "mode": "urlencoded",
-              "urlencoded": [
-                {
-                  "key": "username",
-                  "value": "{{uniqueUsername}}",
-                  "type": "text"
-                },
-                {
-                  "key": "email",
-                  "value": "unique_form@test.com",
-                  "type": "text"
-                },
-                {
-                  "key": "budget",
-                  "value": "500",
-                  "type": "text"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/form",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "form"
-              ]
-            }
-          }
-        },
-        {
-          "name": "POST /users/form - Duplicate Email (P3: Invalid)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Equivalence Partition: P3 - Invalid: duplicate email",
-                  "pm.test('P3: Status code is 400 for duplicate email', function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "pm.test('P3: Error message mentions email', function () {",
-                  "    pm.expect(pm.response.text()).to.include('User Creation Failed');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/x-www-form-urlencoded"
-              }
-            ],
-            "body": {
-              "mode": "urlencoded",
-              "urlencoded": [
-                {"key": "username", "value": "unique_form_username", "type": "text"},
-                {"key": "email", "value": "{{uniqueEmail}}", "type": "text"},
-                {"key": "budget", "value": "500", "type": "text"}
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/form",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "form"]
             }
           }
         }
