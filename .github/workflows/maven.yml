@@ -320,7 +320,7 @@ jobs:
         run: mvn pmd:check --batch-mode
 
       - name: Generate PMD Report
-        run: mvn site -DgenerateReports=false --batch-mode
+        run: mvn pmd:pmd --batch-mode
 
       - name: Upload Static Analysis Reports
         uses: actions/upload-artifact@v4
