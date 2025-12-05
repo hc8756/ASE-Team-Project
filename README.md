@@ -102,6 +102,8 @@ To view client activity:
 - `IllegalArgumentException` → `400 Bad Request` with JSON body: `{"error":"<message>"}`
 
 ## Testing
+**Note:** The set of equivalence partitions we have defined for Unit and API testing are documented in the header
+comments of our test files.
 
 ### Unit Testing
 - Framework: JUnit 5
